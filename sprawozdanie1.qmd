@@ -1,0 +1,43 @@
+---
+title: "Sprawozdanie 1"
+author: "Joanna Kusy, Tomasz Srebniak"
+format: pdf
+editor: visual
+---
+
+## Część I
+
+W pewnej dużej firmie technologicznej przeprowadzono ankietę, mającą na celu ocenę skuteczności programów szkoleniowych dla pracowników. Wzięło w niej udział dwieście losowo wybranych osób (losowanie proste ze zwracaniem).
+
+```{r}
+ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/ankieta.csv', header = TRUE, sep = ";", check.names = F)
+ankieta |> View()
+```
+
+```{r}
+# rename columns 1st 2nd and 7th column
+colnames(ankieta)[1] <- "DZIAŁ"
+colnames(ankieta)[2] <- "STAŻ"
+colnames(ankieta)[7] <- "PŁEĆ"
+missing_values <- sum(is.na(ankieta))
+missing_values
+```
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
