@@ -5,39 +5,344 @@ format: pdf
 editor: visual
 ---
 
-## Część I
+# Część I
+
+## Zadanie 1
 
 W pewnej dużej firmie technologicznej przeprowadzono ankietę, mającą na celu ocenę skuteczności programów szkoleniowych dla pracowników. Wzięło w niej udział dwieście losowo wybranych osób (losowanie proste ze zwracaniem).
 
-```{r}
-ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/ankieta.csv', header = TRUE, sep = ";", check.names = F)
-ankieta |> View()
+W ankiecie zostały umieszczone odpowiedzi na poniższe pytania:
+
+-   W jakim dziale pracujesz?" - zmienna **DZIAŁ** przyjmująca wartości: **HR** (Dział zasobów ludzkich), **IT** (Dział technologii informatycznych), **PD** (Dział Produktowy) lub **MK** (Dział Marketingu),
+
+-   "Jak długo pracujesz w firmie?" - zmienna **STAŻ** przyjmująca wartości: **1** (Poniżej jednego roku), **2** (Między jednym a trzema latami) lub **3** (Powyżej trzech lat),
+
+-   "Czy pełnisz funkcję kierowniczą?" - zmienna **CZY_KIER** przyjmująca wartości: **Tak** (Stanowisko kierownicze) lub **Nie** (Stanowisko inne niż kierownicze),
+
+-   "Jak bardzo zgadzasz sie ̨ ze stwierdzeniem, że firma zapewnia odpowiednie wsparcie i materiały umożliwiające skuteczne wykorzystanie w praktyce wiedzy zdobytej w trakcie szkoleń?" - zmienna **PYT_1** przyjmuja ̨ca wartości: **-2** (zdecydowanie się nie zgadzam), **-1** (nie zgadzam się), **0** (nie mam zdania), **1** (zgadzam się), **2** (zdecydowanie się zgadzam).
+
+-   "Jak bardzo zgadzasz się ze stwierdzeniem, że firma oferuje szkolenia dostosowane do twoich potrzeb, wspierając twój rozwój zawodowy i szanse na awans?" - zmienna **PYT_2** przyjmująca wartości: **-2** (zdecydowanie się nie zgadzam), **-1** (nie zgadzam się), **1** (zgadzam się), **2** (zdecydowanie się zgadzam).
+
+Dodatkowo w ramach metryczki ankietowani zostali poproszeni o wskazanie swojego wieku - zmienna **WIEK** przyjmująca wartości numeryczne, oraz wskazanie płci - zmienna **PŁEĆ** przyjmująca wartość **K** lub **M**.
+
+Kilka tygodni później w firmie przeprowadzono cykl szkoleń indywidualnie dostosowanych do potrzeb konkretnych grup pracowników. Ankietowanych biorących udział w badaniu poproszono wówczas o ponowną odpowiedź na pytanie dotyczące wsparcia w rozwoju zawodowym i możliwości awansu w firmie - zmienna **PYT_3**.
+
+### Podpunkt 1
+
+Poniżej przedstawiono pierwsze pięć rekordów wyników ankiety, których nie poddano żadnych modyfikacjom.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(patchwork)
+library(ggmosaic)
+library(ggplot2)
 ```
+
+```{r}
+ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/ankieta.csv', 
+                    header = TRUE, sep = ";", check.names = F)
+head(ankieta, 5)
+```
+
+Nazwy kolumn zawierające polskie znaki nie wczytały się prawidłowo. W celu zapewnienia czytelności danych poprawiono nazwy kolumn, w których występowały błędy.
 
 ```{r}
 # rename columns 1st 2nd and 7th column
 colnames(ankieta)[1] <- "DZIAŁ"
 colnames(ankieta)[2] <- "STAŻ"
 colnames(ankieta)[7] <- "PŁEĆ"
+```
+
+Poniżej przedstawiono pierwsze pięć rekordów wyników ankiety z poprawionymi nazwami kolumn.
+
+```{r, echo = FALSE}
+head(ankieta, 5)
+```
+
+Zadbano także o odpowiednie typy badanych zmiennych, czego efekty zaprezentowano poniżej.
+
+```{r, echo = FALSE}
+# change type of columns
+ankieta$DZIAŁ <- as.factor(ankieta$DZIAŁ)
+ankieta$STAŻ <- as.factor(ankieta$STAŻ)
+ankieta$CZY_KIER <- as.factor(ankieta$CZY_KIER)
+ankieta$PYT_1 <- as.factor(ankieta$PYT_1)
+ankieta$PYT_2 <- as.factor(ankieta$PYT_2)
+ankieta$PYT_3 <- as.factor(ankieta$PYT_3)
+ankieta$PŁEĆ <- as.factor(ankieta$PŁEĆ)
+```
+
+```{r}
+# get type of columns
+sapply(ankieta, class)
+```
+
+Zbadano także, czy zmienne przyjmują wartości zgodne z zamieszczonym wyżej opisem.
+
+```{r}
+# check if column contains valid values
+all(unique(ankieta$DZIAŁ) %in% c("HR", "IT", "PD", "MK"))
+all(unique(ankieta$STAŻ) %in% c(1, 2, 3))
+all(unique(ankieta$CZY_KIER) %in% c("Tak", "Nie"))
+all(unique(ankieta$PYT_1) %in% c(-2, -1, 0, 1, 2))
+all(unique(ankieta$PYT_2) %in% c(-2, -1, 1, 2))
+all(unique(ankieta$PYT_3) %in% c(-2, -1, 1, 2))
+all(unique(ankieta$PŁEĆ) %in% c("K", "M"))
+cat("Minimalna wartość dla zmiennej WIEK:", min(ankieta$WIEK),
+    ", a maksymalna:", max(ankieta$WIEK), ".")
+```
+
+Wartości we wszystkich kolumnach są zgodne z naszymi oczekiwaniami. Dodatkowo sprawdzono, czy ankieta nie zawiera braków w danych.
+
+```{r}
 missing_values <- sum(is.na(ankieta))
 missing_values
 ```
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+Ankieta nie zawiera żadnych braków danych.
 
-## Running Code
+### Podpunkt 2
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r}
-1 + 1
-```
-
-You can add options to executable code like this
+Utworzono zmienną **WIEK_KAT** przeprowadzając kategoryzację zmiennej **WIEK** korzystając z następujących przedziałów: do 35 lat (młody), między 36 a 45 lat (średni), między 46 a 55 lat (starszy), powyżej 55 lat (wiek przedemerytalny, skrótowo oznaczony jako emerytura).
 
 ```{r}
-#| echo: false
-2 * 2
+ankieta['WIEK_KAT'] <- ifelse(ankieta$WIEK < 36, 'młody', 
+                              ifelse(ankieta$WIEK < 46, 'średni', 
+                                     ifelse(ankieta$WIEK < 56, 'starszy', 
+                                            'emerytura')))
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r, echo=FALSE}
+head(ankieta)
+```
+
+### Podpunkt 3
+
+Tablica liczności dla zmiennej **DZIAŁ**.
+
+```{r}
+ankieta |> group_by(DZIAŁ) |> summarise(n = n())
+```
+
+Z tabeli wynika, że najwięcej osób pracuje kolejno w dziale: produktowym, marketingu, zasobów ludzkich oraz technologii informatycznych. Sugeruje to, że firma koncentruje się działaniach operacyjnych, czyli związanych z produktami i ich dobrym marketingiem. Działy HR oraz IT pełnią zapewne rolę wspierającą, stąd ich mniejsza liczebność w strukturze firmy.
+
+Tabela liczności dla zmiennej **STAŻ**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(STAŻ) |> summarise(n = n())
+```
+
+Najwięcej pracowników pracuje w fimie od roku do trzech lat. Zapewne jest to okres, w którym nastąpił największy rozwój przedsiębiorstwa. Stosunkowo duża liczba osób zatrudnionych poniżej roku może świadczyć o dalszym rozwoju firmy. Mała liczba pracowników ze stażem dłuższym niż trzy lata może potwierdzać teorię o dynamicznym rozwoju firmy lub świadczyć o problemach z utrzymaniem kadry.
+
+Tabela liczności dla zmiennej **CZY_KIER**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(CZY_KIER) |> summarise(n = n())
+```
+
+Z tabeli wynika, że około co piąta osoba zajmuje stanowisko kierownicze. Stosunek liczby kierowników do ogólnej liczby pracowników sugeruje, że firma posiada dobrze rozwiniętą strukturę zarządzania.
+
+Tabela liczności dla zmiennej **PŁEĆ**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(PŁEĆ) |> summarise(n = n())
+```
+
+Z przeprowadzonej ankiety wynika, że w firmie pracuje więcej mężczyzn niż kobiet. Może to świadczyć o dominacji mężczyzn w obszarach związanych z technologią lub wskazywać na potencjalną dyskryminację wobec kobiet podczas procesu rekrutacyjnego.
+
+Tabela liczności dla zmiennej **WIEK_KAT**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(WIEK_KAT) |> summarise(n = n())
+```
+
+Wśród ankietowanych osób najwięcej jest między 36. a 55. rokiem życia. Zapewne ludzie w tym wieku posiadają odpowiedni zakres umiejętności i doświadczenie cenione w firmie. Jednocześnie stosunkowo niewielka liczba młodszych pracowników może sugerować ograniczone możliwości dla osób rozpoczynających karierę lub specyfikę branży, która wymaga większej praktyki. Obecność osób w wieku przedemerytalnym wskazuje, że firma ceni wiedzę ekspercką zdobytą dzięki wieloletniemu doświadczeniu. Ich stosunkowo niewielka liczba może wynikać z naturalnej rotacji związanej ze zbliżającą się emeryturą, a także z mniejszej skłonności pracodawcy do inwestowania w rozwój pracowników w tym wieku.
+
+### Podpunkt 4
+
+Wykres kołowy dla zmiennej PYT_1.
+
+```{r}
+p1 <- ggplot(ankieta, aes(x='', fill=PYT_1)) + 
+  geom_bar(color='white') +
+  coord_polar('y', start=pi/2) + 
+  theme_void() +
+  labs(title='Pytanie 1', fill='Odpowiedzi') 
+p1
+```
+
+Wykres słupkowy dla zmiennej PYT_1.
+
+```{r}
+p1 <- ggplot(ankieta, aes(x=PYT_1, fill=PYT_1)) + 
+  geom_bar(color='white') + 
+  labs(title='Pytanie 1', fill='Odpowiedzi') 
+p1
+```
+
+Z wykresów wynika, że ponad połowa badanych zgadza się lub zdecydowanie zgadza się ze stwierdzeniem, iż firma zapewnia odpowiednie wsparcie i materiały umożliwiające skuteczne wykorzystanie w praktyce wiedzy zdobytej w trakcie szkoleń. Stosunkowo duża część ankietowanych nie ma zdania w tej kwestii. Mniej niż jedna na cztery badane osoby nie zgadza się lub zdecydowanie nie zgadza się ze stwierdzeniem zawartym w pytaniu. Warto byłoby sprawdzić, czy osoby, które uważają, że firma nie zapewnia im odpowiedniego wsparcia lub materiałów nie są ze sobą powiązane np. przez dział, w którym pracują bądź managera. Może to wskazywać, że sposób zarządzania w niektórych zespołach może nie sprzyjać skutecznemu wykorzystywaniu zdobytej wiedzy i dalszemu rozwojowi pracowników.
+
+Wykres kołowy dla zmiennej PYT_2.
+
+```{r, echo=FALSE}
+p2 <- ggplot(ankieta, aes(x='', fill=factor(PYT_2))) + geom_bar(color='white') +
+  coord_polar('y', start=pi/2) + theme_void() + labs(title='Pytanie 2', fill='Odpowiedzi')
+p2
+```
+
+Wykres słupkowy dla zmiennej PYT_2.
+
+```{r, echo=FALSE}
+p2 <- ggplot(ankieta, aes(x=PYT_2, fill=PYT_2)) + geom_bar(color='white') + labs(title='Pytanie 2', fill='Odpowiedzi') 
+p2
+```
+
+Z wykresów wynika, że badani pracownicy firmy mocno dzielą się w opinii dotyczącej atrakcyjności oferty szkoleń i ich dostosowania do własnych potrzeb. Większość pracowników jest z niej wysoce zadowolona, jednak istnieje także spora wyraźnie nieusatysfakcjonowana grupa osób. Oznacza to, że oferta szkoleniowa skutecznie odpowiada na potrzeby części pracowników, ale jednocześnie nie spełnia oczekiwań innych. 
+
+### Podpunkt 5
+
+Tablica wielodzielcza dla pary zmiennych **PYT_1** i **DZIAŁ**.
+
+```{r}
+ankieta |> 
+  group_by(DZIAŁ) |> 
+  summarise(PYT_1 = mean(as.numeric(as.character(PYT_1)), na.rm = TRUE))
+```
+
+Powyżej przedstawiono tablicę wielodzielczą dla zmiennej **DZIAŁ** oraz średniej zmiennej **PYT_1**. Wyższa wartość w tabeli oznacza większą satysfakcję z poziomu wsparcia i zapewnienia materiałów umożliwiających skuteczne wykorzystanie w praktyce wiedzy zdobytej w trakcie szkoleń. Obecność tych dwóch czynników najlepiej oceniają osoby pracujące w dziale **IT**, nieco gorsze wyniki odnotowano w działach **HR** i **MK**. Swoją sytuację najgorzej ocenią osoby z działu **PD**, co może wskazywać na potrzebę zwiększenia poziomu wsparcia lub lepszego dostosowania dostępu do materiałów wspomagających rozwój pracowników w tym dziale.
+
+Tablica wielodzielcza dla zmiennej **STAŻ** i średniej zmiennej **PYT_1**.
+
+```{r, echo=FALSE}
+ankieta |> 
+  group_by(STAŻ) |> 
+  summarise(PYT_1 = mean(as.numeric(as.character(PYT_1)), na.rm = TRUE))
+```
+
+Grupując poziom satysfakcji na podstawie stażu w firmie, można stwierdzić, że najbardziej zadowoloną grupą są osoby zatrudnione dłużej niż rok, ale krócej niż trzy lata. Być może taki staż pracy pozwala najlepiej docenić poziom wsparcia i dostępność materiałów oferowanych przez pracodawcę. Osoby pracujące krócej niż rok mogły przyjść ze środowisk, w których otrzymywały większą pomoc, lub nie miały jeszcze wystarczająco dużo czasu, aby w pełni ocenić warunki panujące u obecnego pracodawcy. Z kolei mniejsze zadowolenie wśród pracowników z najdłuższym stażem może wynikać z niewielkiej liczby zmian i ulepszeń w systemie wsparcia na przestrzeni lat.
+
+Tablica wielodzielcza dla zmiennej **CZY_KIER** i średniej zmiennej **PYT_1**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(CZY_KIER) |> summarise(PYT_1 = mean(as.numeric(as.character(PYT_1)), na.rm = TRUE))
+```
+
+Z tabeli wielodzielczej wynika, że osoby pełniące funkcje kierownicze są mniej zadowolne z poziomu wsparcia oferowanego przez firmę. Może to sugerować, że ich potrzeby w zakresie szkoleń i dostępnych materiałów różnią się od potrzeb pracowników na niższych stanowiskach, a obecny system wsparcia nie jest dostosowany do specyfiki ich roli.
+
+Tablica wielodzielcza dla zmiennej **PŁEĆ** i średniej zmiennej **PYT_1**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(PŁEĆ) |> summarise(PYT_1 = mean(as.numeric(as.character(PYT_1)), na.rm = TRUE))
+```
+
+Kobiety są bardziej zadowolne z poziomu wsparcia oferowanego przez firmę, jednak różnica pomiędzy płciami jest niewielka i nie wskazuje na znaczące nierówności w dostępie do zasobów czy jakości oferowanej pomocy.
+
+Tablica wielodzielcza dla zmiennej **WIEK_KAT** i średniej zmiennej **PYT_1**.
+
+```{r, echo=FALSE}
+ankieta |> group_by(WIEK_KAT) |> summarise(PYT_1 = mean(as.numeric(as.character(PYT_1)), na.rm = TRUE))
+```
+
+Wyniki ankiety wskazują, że najbardziej usatysfakcjonowane z pomocy oferowanej przez pracodawcę są osoby między 36. a 45. rokiem życia. Pozostałe grupy wykazują niższy, aczkolwiek zbliżony do siebie poziom satysfakcji. Ze względu na istotną różnicę pomiędzy osobami należącymi do kategorii „starszy” a pozostałymi grupami, warto zbadać, jakie czynniki wpływają na ich odmienną opinię.
+
+### Podpunkt 6
+
+Poniżej przedstawiono tabelę wielodzielczą dla pary zmiennych **PYT_2** i **PYT_3**.
+
+```{r}
+ankieta |> group_by(PYT_2, PYT_3) |> 
+  summarise(n = n(), .groups='keep') |> 
+  pivot_wider(names_from = PYT_3, values_from = n, values_fill = 0)
+```
+
+Z tabeli wynika, że szkolenia indywidualnie dostosowane do potrzeb konkretnych grup pracowników nie zmieniły znacząco zdania ankietowanych. Wiele osób o najbardziej skrajnych opiniach pozostało przy swoich początkowych ocenach. Trzydzieści sześć osób zmieniło swoją opinię na lepszą, natomiast dwadzieścia sześć osób – na gorszą.
+
+### Podpunkt 7
+
+Utworzono zmienną **CZY_ZADOW** na podstawie zmiennej **PYT_2** łącząc kategorie "nie zgadzam się" i "zdecydowanie się nie zgadzam" oraz "zgadzam się" i "zdecydowanie się zgadzam".
+
+```{r}
+ankieta['CZY_ZADOW'] <- ifelse(ankieta$PYT_2 %in% c(1, 2), 
+                               'zadowolony', 'niezadowolony')
+head(ankieta)
+```
+
+### Podpunkt 8
+
+Poniżej sporządzono wykresy mozaikowe odpowiadające parom zmiennych: **CZY_ZADOW** i **DZIAŁ**, **CZY_ZADOW** i **STAŻ**, **CZY_ZADOW** i **CZY_KIER**, **CZY_ZADOW** i **PŁEĆ** oraz **CZY_ZADOW** i **WIEK_KAT**. Do każdego z nich postawiono hipotezę dotyczącą relacji między zmiennymi.
+
+Wykres mozaikowy dla pary zmiennych **CZY_ZADOW** i **DZIAŁ**.
+
+```{r}
+ggplot() + 
+  geom_mosaic(
+    data = ankieta, 
+    aes(weight = 1, x = product(DZIAŁ, CZY_ZADOW), fill = CZY_ZADOW)
+    ) +
+  labs(title='Zadowolenie w zależności od działu') + 
+  theme(legend.position = 'bottom')
+```
+
+Hipoteza: Dział **HR** ma wpływ na ofertę szkoleń, tym samym może ją dopasować do potrzeb pracowników w tym dziale.
+
+Wykres mozaikowy dla pary zmiennych **CZY_ZADOW** i **STAŻ**.
+
+```{r, echo=FALSE}
+ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(STAŻ, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od stażu') + theme(legend.position = 'bottom')
+```
+
+Hipoteza: Osoby zatrudnione w firmie między rokiem a trzema latami mają niedostateczne umiejętności, które mogą być rozwijane w ramach oferowanych szkoleń.
+
+Wykres mozaikowy dla pary zmiennych **CZY_ZADOW** i **CZY_KIER**.
+
+```{r, echo=FALSE}
+ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(CZY_KIER, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od szczebla') + theme(legend.position = 'bottom')
+```
+
+Hipoteza: Zajmowanie przez pracownika stanowiska kierowniczego nie przekłada się na jego opinię o dopasowaniu oferty szkoleń do jego potrzeb zawodowych.
+
+Wykres mozaikowy dla pary zmiennych **CZY_ZADOW** i **PŁEĆ**.
+
+```{r, echo=FALSE}
+ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(PŁEĆ, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od płci') + theme(legend.position = 'bottom') 
+```
+
+Hipoteza: Kobiety mają wyższe wymagania dotyczące oferty szkoleń w porównaniu do mężczyzn.
+
+Wykres mozaikowy dla pary zmiennych **CZY_ZADOW** i **WIEK_KAT**.
+
+```{r, echo=FALSE}
+ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(WIEK_KAT, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od wieku') + theme(legend.position = 'bottom')
+```
+
+Hipoteza: Oferta szkoleń w firmie jest dobrze dopasowana do osób z wieloletnim doświadczeniem w branży, ale nie uwzględnia w pełni potrzeb osób z doświadczeniem eksperckim.
+
+# Część II
+
+## Zadanie 2
+
+## Zadanie 3
+
+## Zadanie 4
+
+## Zadanie 5
+
+# Część III oraz IV
+
+## Zadanie 6
+
+## Zadanie 7
+
+## Zadanie 8
+
+## Zadanie 9
+
+# Część V
+
+## Zadanie 10
+
+## Zadanie 11
+
+## Zadanie 12
+
+# Zadanie dodatkowe
