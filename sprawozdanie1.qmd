@@ -1,7 +1,11 @@
 ---
 title: "Sprawozdanie 1"
 author: "Joanna Kusy, Tomasz Srebniak"
-format: pdf
+format:
+  pdf:
+    fig-width: 8
+    fig-height: 4
+    fig-align: center
 editor: visual
 ---
 
@@ -39,15 +43,13 @@ library(ggplot2)
 ```
 
 ```{r}
-ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/ankieta.csv', 
-                    header = TRUE, sep = ";", check.names = F)
+ankieta <- read.csv('ankieta.csv', header = TRUE, sep = ";", check.names = F)
 head(ankieta, 5)
 ```
 
 Nazwy kolumn zawierające polskie znaki nie wczytały się prawidłowo. W celu zapewnienia czytelności danych poprawiono nazwy kolumn, w których występowały błędy.
 
 ```{r}
-# rename columns 1st 2nd and 7th column
 colnames(ankieta)[1] <- "DZIAŁ"
 colnames(ankieta)[2] <- "STAŻ"
 colnames(ankieta)[7] <- "PŁEĆ"
@@ -62,7 +64,6 @@ head(ankieta, 5)
 Zadbano także o odpowiednie typy badanych zmiennych, czego efekty zaprezentowano poniżej.
 
 ```{r, echo = FALSE}
-# change type of columns
 ankieta$DZIAŁ <- as.factor(ankieta$DZIAŁ)
 ankieta$STAŻ <- as.factor(ankieta$STAŻ)
 ankieta$CZY_KIER <- as.factor(ankieta$CZY_KIER)
@@ -73,14 +74,12 @@ ankieta$PŁEĆ <- as.factor(ankieta$PŁEĆ)
 ```
 
 ```{r}
-# get type of columns
 sapply(ankieta, class)
 ```
 
 Zbadano także, czy zmienne przyjmują wartości zgodne z zamieszczonym wyżej opisem.
 
 ```{r}
-# check if column contains valid values
 all(unique(ankieta$DZIAŁ) %in% c("HR", "IT", "PD", "MK"))
 all(unique(ankieta$STAŻ) %in% c(1, 2, 3))
 all(unique(ankieta$CZY_KIER) %in% c("Tak", "Nie"))
@@ -252,7 +251,7 @@ Poniżej przedstawiono tabelę wielodzielczą dla pary zmiennych **PYT_2** i **
 ```{r}
 ankieta |> group_by(PYT_2, PYT_3) |> 
   summarise(n = n(), .groups='keep') |> 
-  pivot_wider(names_from = PYT_3, values_from = n, values_fill = 0)
+  pivot_wider(names_from = PYT_3, values_from = n, values_fill = 0) 
 ```
 
 Z tabeli wynika, że szkolenia indywidualnie dostosowane do potrzeb konkretnych grup pracowników nie zmieniły znacząco zdania ankietowanych. Wiele osób o najbardziej skrajnych opiniach pozostało przy swoich początkowych ocenach. Trzydzieści sześć osób zmieniło swoją opinię na lepszą, natomiast dwadzieścia sześć osób – na gorszą.

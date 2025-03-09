@@ -5,16 +5,14 @@ library(ggplot2)
 
 ankieta <- read.csv('/Users/tomasz/Politechnika/semestr_6/ankiety/ankieta.csv', header = TRUE, sep = ";", check.names = F)
 ankieta |> View()
-# rename columns 1st 2nd and 7th column
+
 colnames(ankieta)[1] <- "DZIAŁ"
 colnames(ankieta)[2] <- "STAŻ"
 colnames(ankieta)[7] <- "PŁEĆ"
 
-# find missing values
 missing_values <- sum(is.na(ankieta))
 missing_values
 
-# get type of columns
 sapply(ankieta, class)
 
 ankieta['WIEK_KAT'] <- ifelse(ankieta$WIEK < 36, 'młody', ifelse(ankieta$WIEK < 46, 'średni', ifelse(ankieta$WIEK < 56, 'starszy', 'emerytura')))
@@ -49,3 +47,6 @@ ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(STAŻ, CZY_ZA
 ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(CZY_KIER, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od działu') + theme(legend.position = 'bottom')
 ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(PŁEĆ, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od działu') + theme(legend.position = 'bottom') 
 ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(WIEK_KAT, CZY_ZADOW), fill = CZY_ZADOW)) + labs(title='Zadowolenie w zależności od działu') + theme(legend.position = 'bottom')
+
+# install.packages('likert')
+library(likert)

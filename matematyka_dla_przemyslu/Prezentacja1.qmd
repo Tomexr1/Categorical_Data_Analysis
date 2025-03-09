@@ -1,0 +1,46 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak
+format:
+  revealjs:
+    transition: slide
+    theme: serif
+    self-contained: true
+editor: visual
+title-slide-attributes:
+    data-background-image: "background.png"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+## Plan prezentacji
+
+- Część 1: Analiza Portfolio
+- Część 2: Model GARCH
+
+## Analiza Portfolio 
+
+Analiza portfolio to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
+
+- Wstęp do analizy portfolio
+
+- Ryzyko i zwroty
+
+- Ocena wydajności portfela
+
+- Optymalizacja portfolio
+
+
+## Model GARCH
+
+GARCH (Generalized Autoregressive Conditional Heteroskedasticity) to model służący do przewidywania zmienności cen aktywów finansowych.
+
+\begin{equation}
+GARCH(p, q): \sigma_t^2 = \omega + \sum_{i=1}^p\alpha_i \varepsilon_{t-i}^2 + \sum_{j=1}^q\beta_j \sigma_{t-j}^2
+\end{equation}
+
+- Wprowadzenie do modelu GARCH
+- Konfiguracja w Pythonie
+- Ocena wydajności modelu
+- Przykłady zastosowań
