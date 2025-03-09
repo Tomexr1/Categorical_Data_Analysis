@@ -159,7 +159,7 @@ Wśród ankietowanych osób najwięcej jest między 36. a 55. rokiem życia. Zap
 
 ### Podpunkt 4
 
-Wykres kołowy dla zmiennej PYT_1.
+Wykres kołowy dla zmiennej **PYT_1**.
 
 ```{r}
 p1 <- ggplot(ankieta, aes(x='', fill=PYT_1)) + 
@@ -170,7 +170,7 @@ p1 <- ggplot(ankieta, aes(x='', fill=PYT_1)) +
 p1
 ```
 
-Wykres słupkowy dla zmiennej PYT_1.
+Wykres słupkowy dla zmiennej **PYT_1**.
 
 ```{r}
 p1 <- ggplot(ankieta, aes(x=PYT_1, fill=PYT_1)) + 
@@ -181,7 +181,7 @@ p1
 
 Z wykresów wynika, że ponad połowa badanych zgadza się lub zdecydowanie zgadza się ze stwierdzeniem, iż firma zapewnia odpowiednie wsparcie i materiały umożliwiające skuteczne wykorzystanie w praktyce wiedzy zdobytej w trakcie szkoleń. Stosunkowo duża część ankietowanych nie ma zdania w tej kwestii. Mniej niż jedna na cztery badane osoby nie zgadza się lub zdecydowanie nie zgadza się ze stwierdzeniem zawartym w pytaniu. Warto byłoby sprawdzić, czy osoby, które uważają, że firma nie zapewnia im odpowiedniego wsparcia lub materiałów nie są ze sobą powiązane np. przez dział, w którym pracują bądź managera. Może to wskazywać, że sposób zarządzania w niektórych zespołach może nie sprzyjać skutecznemu wykorzystywaniu zdobytej wiedzy i dalszemu rozwojowi pracowników.
 
-Wykres kołowy dla zmiennej PYT_2.
+Wykres kołowy dla zmiennej **PYT_2**.
 
 ```{r, echo=FALSE}
 p2 <- ggplot(ankieta, aes(x='', fill=factor(PYT_2))) + geom_bar(color='white') +
@@ -189,7 +189,7 @@ p2 <- ggplot(ankieta, aes(x='', fill=factor(PYT_2))) + geom_bar(color='white') +
 p2
 ```
 
-Wykres słupkowy dla zmiennej PYT_2.
+Wykres słupkowy dla zmiennej **PYT_2**.
 
 ```{r, echo=FALSE}
 p2 <- ggplot(ankieta, aes(x=PYT_2, fill=PYT_2)) + geom_bar(color='white') + labs(title='Pytanie 2', fill='Odpowiedzi') 

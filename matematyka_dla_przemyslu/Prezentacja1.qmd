@@ -16,21 +16,20 @@ title-slide-attributes:
 
 ## Plan prezentacji
 
-- Część 1: Analiza Portfolio
-- Część 2: Model GARCH
+-   Część 1: Analiza Portfolio
+-   Część 2: Model GARCH
 
-## Analiza Portfolio 
+## Analiza Portfolio
 
 Analiza portfolio to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
 
-- Wstęp do analizy portfolio
+-   Wstęp do analizy portfolio
 
-- Ryzyko i zwroty
+-   Ryzyko i zwroty
 
-- Ocena wydajności portfela
+-   Ocena wydajności portfela
 
-- Optymalizacja portfolio
-
+-   Optymalizacja portfolio
 
 ## Model GARCH
 
@@ -40,7 +39,35 @@ GARCH (Generalized Autoregressive Conditional Heteroskedasticity) to model słu�
 GARCH(p, q): \sigma_t^2 = \omega + \sum_{i=1}^p\alpha_i \varepsilon_{t-i}^2 + \sum_{j=1}^q\beta_j \sigma_{t-j}^2
 \end{equation}
 
-- Wprowadzenie do modelu GARCH
-- Konfiguracja w Pythonie
-- Ocena wydajności modelu
-- Przykłady zastosowań
+-   Wprowadzenie do modelu GARCH
+-   Konfiguracja w Pythonie
+-   Ocena wydajności modelu
+-   Przykłady zastosowań
+
+## Wstęp do analizy portfolio
+
+**Portfel inwestycyjny** - zbiór aktywów posiadanych przez osobę fizyczną.
+
+**Skład**:
+
+-   akcje,
+-   obligacje,
+-   towary,
+-   fundusze,
+-   ...
+
+## Dywersyfikacja portfela
+
+Polega na inwestowaniu w różne rodzaje aktywów w celu zmniejszenia ryzyka inwestycyjnego.
+
+### Typowe strategie inwestycyjne
+
+![](equal_cap_weight.jpeg){fig-align="center" width="432"}
+
+## Stopy zwroty
+
+Zwroty z portfela to zmiany wartości w czasie.
+
+$$
+r_t = \frac{V_t - V_{t - 1}}{V_{t - 1}}
+$$
