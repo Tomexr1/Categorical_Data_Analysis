@@ -18,14 +18,14 @@ title-slide-attributes:
 
 ## Plan prezentacji
 
--   Część 1: Analiza portfela
+-   Część 1: Analiza portfela inwestycyjnego
 -   Część 2: Model GARCH
 
-## Analiza portfela
+## Analiza portfela inwestycyjnego
 
-Analiza portfela to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
+Analiza portfela inwestycyjnego to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
 
--   Wstęp do analizy portfela
+-   Wstęp do analizy portfela inwestycyjnego
 -   Ryzyko i zwroty
 -   Ocena wydajności portfela
 -   Optymalizacja portfela
@@ -43,7 +43,7 @@ GARCH(p, q): \sigma_t^2 = \omega + \sum_{i=1}^p\alpha_i \varepsilon_{t-i}^2 + \s
 -   Ocena wydajności modelu
 -   Przykłady zastosowań
 
-## Wstęp do analizy portfela
+## Wstęp do analizy portfela inwestycyjnego
 
 **Portfel inwestycyjny** - zbiór aktywów posiadanych przez osobę fizyczną.
 
