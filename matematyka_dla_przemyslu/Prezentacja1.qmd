@@ -1,6 +1,8 @@
 ---
 title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
 author: Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak
+execute: 
+  echo: true
 format:
   revealjs:
     transition: slide
@@ -16,20 +18,17 @@ title-slide-attributes:
 
 ## Plan prezentacji
 
--   Część 1: Analiza Portfolio
+-   Część 1: Analiza portfela
 -   Część 2: Model GARCH
 
-## Analiza Portfolio
+## Analiza portfela
 
-Analiza portfolio to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
+Analiza portfela to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
 
--   Wstęp do analizy portfolio
-
+-   Wstęp do analizy portfela
 -   Ryzyko i zwroty
-
 -   Ocena wydajności portfela
-
--   Optymalizacja portfolio
+-   Optymalizacja portfela
 
 ## Model GARCH
 
@@ -44,7 +43,7 @@ GARCH(p, q): \sigma_t^2 = \omega + \sum_{i=1}^p\alpha_i \varepsilon_{t-i}^2 + \s
 -   Ocena wydajności modelu
 -   Przykłady zastosowań
 
-## Wstęp do analizy portfolio
+## Wstęp do analizy portfela
 
 **Portfel inwestycyjny** - zbiór aktywów posiadanych przez osobę fizyczną.
 
@@ -71,3 +70,69 @@ Zwroty z portfela to zmiany wartości w czasie.
 $$
 r_t = \frac{V_t - V_{t - 1}}{V_{t - 1}}
 $$
+
+W naszym portfelu mamy:
+
+-   akcje *General Electric*, waga: 0.5;
+-   akcje *JP Morgan*, waga: 0.2;
+-   akcje *Microsoft*, waga: 0.2;
+-   akcje *Proctor & Gamble*, waga: 0.1.
+
+## Stopy zwrotu
+
+```{python}
+#| echo: false
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+data = pd.read_csv("small_portfolio.csv")
+data.set_index('date', inplace=True)
+```
+
+```{python}
+returns = data.pct_change()
+```
+
+```{python}
+#| echo: false
+returns.head(3)
+```
+
+## Średnia stopa zwrotu (mean returns)
+
+Szacowany zysk lub strata, jaką inwestor spodziewa się osiągnąć z portfela inwestycji.
+
+```{python}
+# średni zwrot dla każdej akcji
+meanDailyReturns = returns.mean()
+# uwzględniamy wagi
+weights = np.array([0.5, 0.2, 0.2, 0.1])
+```
+
+Estymowany zysk/strata
+
+```{python}
+np.sum(meanDailyReturns * weights)
+```
+
+## Skumulowana stopa zwrotu (cumulative returns)
+
+```{python}
+returns['Portfolio']= returns.dot(weights)
+
+# Calculate cumulative returns
+daily_cum_ret = (1 + returns).cumprod()
+```
+
+```{python}
+#| echo: false
+#| warning: false
+#| error: false
+# Plot the portfolio cumulative returns only
+fig, ax = plt.subplots()
+ax.plot(daily_cum_ret.index, daily_cum_ret.Portfolio, color='purple', label="portfolio")
+ax.xaxis.set_major_locator(matplotlib.dates.YearLocator())
+plt.legend()
+plt.show()
+```
