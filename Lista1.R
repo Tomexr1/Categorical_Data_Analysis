@@ -60,22 +60,21 @@ ankieta[sample(nrow(ankieta), nrow(ankieta)*0.1, replace=TRUE), ]
 
 bin_rvs <- function(n, p) {
   sum(sample(c(0, 1), n, replace=TRUE, prob=c(1-p, p)))
- }
+}
+
 bin_rvs(10, 0.5)  
-# pmf
+
 p <- 0.5
 n <- 10
-x <- 0:10
 
-xs <- tibble(Value=replicate(1000, bin_rvs(10, 0.5)))
+xs <- tibble(Value=replicate(100*n, bin_rvs(n, 0.5)))
 ggplot(xs, aes(x=Value)) +
-  geom_histogram(aes(y=after_stat(density)), bins=11, color="black") +
+  geom_histogram(aes(y=after_stat(density)), bins=n+1, color="black") +
   stat_function(fun=dbinom, color='red', xlim=c(min(xs$Value), max(xs$Value)),
                 args=list(size=n, prob=p)) +
   ggtitle("Przykładowy histogram 1000 obserwacji z rozkładu Bin(10, 0.5)") +
   ylab("Gęstość prawdopodobieńśtwa") +
   xlab("Wartość wylosowana z rozkładu normalnego")
-hist(replicate(1000, bin_rvs(10, 0.5)), breaks=seq(-0.5, 10.5, 1), freq=FALSE, col='lightblue', xlab='x', ylab='P(X=x)', main='Prawdopodobieństwo zmiennej losowej X')
 
 ggplot(xs, aes(x=Value)) +
   stat_ecdf(geom="step", color="blue") +
@@ -84,13 +83,42 @@ ggplot(xs, aes(x=Value)) +
   ylab("P(X <= x)") +
   xlab("x") 
 
-ggplot(xs, aes(sample=Value)) +
-  stat_qq_point(distribution="binom", dparams=list()) +
-  stat_qq_line(distribution=”exp”, dparams=list(rate=1)) +
-  stat_qq_band(distribution=”exp”, dparams=list(rate=1), bandType=”ell”) +
-  ylab(”Kwantyle z próby”) +
-  xlab(”Kwantyle teoretyczne”)
 
-  
+install.packages("qqplotr")
+library(qqplotr)
+
+ggplot(xs, aes(sample=Value)) +
+  stat_qq_point(distribution="binom", dparams=list(size=n, prob=p)) +
+  stat_qq_line(distribution="binom", dparams=list(size=n, prob=p)) +
+  stat_qq_band(distribution="binom", dparams=list(size=n, prob=p), bandType="ell") +
+  ylab("Kwantyle z próby") +
+  xlab("Kwantyle teoretyczne")
+
+
+multinomial_rv <- function(n, p) {
+  X <- rep(0, length(p))
+  for (i in 1:n) {
+    temp <- sample(1:length(p), 1, prob=p)
+    X[temp] <- X[temp] + 1
+  }
+  X
+}
+
+multinomial_rvs <- function(size, n, p) {
+  matrix(replicate(size, multinomial_rv(n, p)), nrow=length(p))
+}
+ 
+p <- c(0.1, 0.2, 0.3, 0.4)
+n <- 10
+size <- 100
+
+x <- multinomial_rvs(size, n, p)
+rowSums(x) / size / n  # empiryczne prawdopodbieństwa
+p  # teoretyczne prawdopodobieństwa
+
+
+
+
+
   
   
