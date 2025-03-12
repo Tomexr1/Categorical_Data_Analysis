@@ -51,7 +51,8 @@ ggplot() + geom_mosaic(data = ankieta, aes(weight = 1, x = product(WIEK_KAT, CZY
 # install.packages('likert')
 library(likert)
 summary(ankieta)
-ankieta |> group_by(PYT_1) |> summarise(n = n())
+ankieta |> group_by(PYT_1) |> summarise('%' = n() / nrow(ankieta))
+ankieta |> group_by(PYT_1) |> summarise(n=n()) |> ggplot(aes(x=PYT_1, y=n, fill=PYT_1)) + geom_bar(stat='identity') + labs(title='Pytanie 1', x='Odpowiedź', y='Liczba odpowiedzi') + theme(legend.position = 'none')
 ankieta |> group_by(PYT_1, CZY_KIER) |> summarise(n = n(), .groups='keep') |> ggplot(aes(x = PYT_1, y = n, fill = CZY_KIER)) + geom_bar(stat = 'identity', position = 'dodge') + labs(title='Pytanie 1 w zależności od stanowiska', x='Odpowiedź', y='Liczba odpowiedzi') + theme(legend.position = 'bottom')
 
 ankieta[sample(nrow(ankieta), nrow(ankieta)*0.1, replace=FALSE), ]
@@ -65,12 +66,30 @@ bin_rvs(10, 0.5)
 p <- 0.5
 n <- 10
 x <- 0:10
-y <- dbinom(x, size=n, prob=p)
-plot(x, y, type='h', lwd=2, col='blue', xlab='x', ylab='P(X=x)', main='Prawdopodobieństwo zmiennej losowej X')
-# hist for generated data with bin_rvs
+
+xs <- tibble(Value=replicate(1000, bin_rvs(10, 0.5)))
+ggplot(xs, aes(x=Value)) +
+  geom_histogram(aes(y=after_stat(density)), bins=11, color="black") +
+  stat_function(fun=dbinom, color='red', xlim=c(min(xs$Value), max(xs$Value)),
+                args=list(size=n, prob=p)) +
+  ggtitle("Przykładowy histogram 1000 obserwacji z rozkładu Bin(10, 0.5)") +
+  ylab("Gęstość prawdopodobieńśtwa") +
+  xlab("Wartość wylosowana z rozkładu normalnego")
 hist(replicate(1000, bin_rvs(10, 0.5)), breaks=seq(-0.5, 10.5, 1), freq=FALSE, col='lightblue', xlab='x', ylab='P(X=x)', main='Prawdopodobieństwo zmiennej losowej X')
-# cdf
-plot(x, pbinom(x, size=n, prob=p), type='s', lwd=2, col='blue', xlab='x', ylab='P(X<=x)', main='Funkcja rozkładu zmiennej losowej X')
+
+ggplot(xs, aes(x=Value)) +
+  stat_ecdf(geom="step", color="blue") +
+  stat_function(fun=pbinom, color='red', args=list(size=n, prob=p)) +
+  ggtitle("Empirical CDF vs Theoretical CDF") +
+  ylab("P(X <= x)") +
+  xlab("x") 
+
+ggplot(xs, aes(sample=Value)) +
+  stat_qq_point(distribution="binom", dparams=list()) +
+  stat_qq_line(distribution=”exp”, dparams=list(rate=1)) +
+  stat_qq_band(distribution=”exp”, dparams=list(rate=1), bandType=”ell”) +
+  ylab(”Kwantyle z próby”) +
+  xlab(”Kwantyle teoretyczne”)
 
   
   
