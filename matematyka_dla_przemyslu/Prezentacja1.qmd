@@ -18,14 +18,14 @@ title-slide-attributes:
 
 ## Plan prezentacji
 
--   Część 1: Analiza portfela
+-   Część 1: Analiza portfela inwestycyjnego
 -   Część 2: Model GARCH
 
-## Analiza portfela
+## Analiza portfela inwestycyjnego
 
-Analiza portfela to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
+Analiza portfela inwestycyjnego to zbiór metod i narzędzi służących do oceny efektywności inwestycji w różne aktywa finansowe.
 
--   Wstęp do analizy portfela
+-   Wstęp do analizy portfela inwestycyjnego
 -   Ryzyko i zwroty
 -   Ocena wydajności portfela
 -   Optymalizacja portfela
@@ -43,7 +43,7 @@ GARCH(p, q): \sigma_t^2 = \omega + \sum_{i=1}^p\alpha_i \varepsilon_{t-i}^2 + \s
 -   Ocena wydajności modelu
 -   Przykłady zastosowań
 
-## Wstęp do analizy portfela
+## Wstęp do analizy portfela inwestycyjnego
 
 **Portfel inwestycyjny** - zbiór aktywów posiadanych przez osobę fizyczną.
 
@@ -118,10 +118,12 @@ np.sum(meanDailyReturns * weights)
 
 ## Skumulowana stopa zwrotu (cumulative returns)
 
-```{python}
-returns['Portfolio']= returns.dot(weights)
+Łączny zwrot z portfela inwestycyjnego w danym okresie.
 
-# Calculate cumulative returns
+```{python}
+# dodajemy kolumnę zawierającą zwrot z całego portfela
+returns['Portfolio']= returns.dot(weights)
+# liczymy skumulowany zwrot
 daily_cum_ret = (1 + returns).cumprod()
 ```
 
@@ -134,5 +136,34 @@ fig, ax = plt.subplots()
 ax.plot(daily_cum_ret.index, daily_cum_ret.Portfolio, color='purple', label="portfolio")
 ax.xaxis.set_major_locator(matplotlib.dates.YearLocator())
 plt.legend()
-plt.show()
 ```
+
+```{python}
+#| results: hide
+ax.plot(daily_cum_ret.index, daily_cum_ret.Portfolio)
+```
+
+## Ryzyko portfela – wariancja
+
+Miara zmienności portfela inwestycyjnego. $$
+\sigma_{pf}^2=
+\begin{bmatrix}
+w_1 & w_2 & w_3 & w_4
+\end{bmatrix}
+\begin{bmatrix}
+\sigma_1^2 & \sigma_{1,2} & \sigma_{1,3} & \sigma_{1,4} \\ 
+\sigma_{2,1} & \sigma_{2}^2 & \sigma_{2,3} & \sigma_{2,4} \\ 
+\sigma_{3,1} & \sigma_{3,2} & \sigma_{3}^2 & \sigma_{3,4} \\ 
+\sigma_{4,1} & \sigma_{4,2} & \sigma_{4,3} & \sigma_{4}^2
+\end{bmatrix}
+\begin{bmatrix}
+w_1 \\
+w_2 \\
+w_3 \\
+w_4 
+\end{bmatrix}
+$$ Bierze pod uwagę:
+
+-   wagi aktywów,
+-   wariancję aktywów,
+-   kowariancję między aktywami.
