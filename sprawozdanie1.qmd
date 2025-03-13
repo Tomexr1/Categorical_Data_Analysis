@@ -412,10 +412,15 @@ p <- 0.5
 xs <- tibble(Value=replicate(100*n, bin_rvs(n, p)))
 ggplot(xs, aes(x=Value)) +
   geom_histogram(
-    aes(y=after_stat(density)), bins=n+1, color="black", binwidth = 1
+    aes(y=after_stat(density), fill="Histogram"),
+    bins=n+1,
+    color="black",
+    binwidth = 1,
+    alpha=0.6
     ) +
   stat_function(
-    fun=dbinom, color='red',
+    fun=dbinom,
+    aes(color='Teoretyczna pmf', fill='Teoretyczna pmf'),
     xlim=c(0, 100),
     args=list(size=n, prob=p),
     geom='point',
@@ -425,18 +430,35 @@ ggplot(xs, aes(x=Value)) +
     "Przykładowy histogram 10 000 obserwacji z rozkładu Bin(100, 0.5)"
     ) +
   ylab("Gęstość prawdopodobieństwa") +
-  xlab("Wartość wylosowana z rozkładu dwumianowego")
+  xlab("Wartość wylosowana z rozkładu dwumianowego") +
+   scale_fill_manual(
+    name = "Legenda",
+    values = c("Histogram" = "blue")
+  ) +
+  scale_color_manual(
+    name = "Legenda",
+    values = c('Teoretyczna pmf' = "red")
+  ) +
+  theme_minimal()
 ```
 
 ```{r}
 ggplot(xs, aes(x=Value)) +
-  stat_ecdf(geom="step", color="blue") +
+  stat_ecdf(aes(color = 'Empiryczyna cdf'), geom="step") +
   stat_function(
-    fun=pbinom, color='red', args=list(size=n, prob=p)
+    fun=pbinom,
+    aes(color = 'Teoretyczna cdf'),
+    args=list(size=n, prob=p)
     ) +
-  ggtitle("Empirical CDF vs Theoretical CDF") +
+  ggtitle("Empiryczna cdf vs Teoretyczna cdf") +
   ylab("P(X <= x)") +
-  xlab("x")
+  xlab("x") +
+  scale_color_manual(
+    name = "Legenda",
+    values = c('Empiryczyna cdf' = "blue", 'Teoretyczna cdf' = "red")
+  ) +
+  theme_minimal()
+  
 ```
 
 ```{r}
