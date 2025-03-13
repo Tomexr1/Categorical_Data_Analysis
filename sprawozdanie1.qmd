@@ -407,7 +407,7 @@ bin_rvs <- function(n, p) {
 ```
 
 ```{r}
-n <- 10
+n <- 100
 p <- 0.5
 xs <- tibble(Value=replicate(100*n, bin_rvs(n, p)))
 ggplot(xs, aes(x=Value)) +
@@ -416,13 +416,13 @@ ggplot(xs, aes(x=Value)) +
     ) +
   stat_function(
     fun=dbinom, color='red',
-    xlim=c(0, 10),
+    xlim=c(0, 100),
     args=list(size=n, prob=p),
     geom='point',
-    n=11
+    n=101
     ) +
   ggtitle(
-    "Przykładowy histogram 1000 obserwacji z rozkładu Bin(10, 0.5)"
+    "Przykładowy histogram 10 000 obserwacji z rozkładu Bin(100, 0.5)"
     ) +
   ylab("Gęstość prawdopodobieństwa") +
   xlab("Wartość wylosowana z rozkładu dwumianowego")
@@ -454,9 +454,9 @@ ggplot(xs, aes(sample=Value)) +
   xlab("Kwantyle teoretyczne")
 ```
 
-## Zadanie 5				
+## Zadanie 5
 
-Zaproponowano metodę symulowania wektorów losowych z rozkładu wielomianowego. Napisano funkcję do generowania realizacji, a następnie zaprezentowano jej działanie porównując wybrane teoretyczne i empiryczne charakterystyki dla przykładowych wartości paramertów rozkładu: *n i p*.
+Zaproponowano metodę symulowania wektorów losowych z rozkładu wielomianowego. Napisano funkcję do generowania realizacji, a następnie zaprezentowano jej działanie porównując teoretyczne i empiryczne charakterystyki dla przykładowych wartości paramertów rozkładu: *n i p*.
 
 ```{r}
 multinomial_rv <- function(n, p) {
@@ -479,8 +479,8 @@ multinomial_rvs <- function(size, n, p) {
 
 ```{r}
 p <- c(0.1, 0.2, 0.3, 0.4)
-n <- 10
-size <- 100
+n <- 1000
+size <- 1
 x <- multinomial_rvs(size, n, p)
 rowSums(x) / size / n  # empiryczne prawdopodbieństwa
 p  # teoretyczne prawdopodobieństwa
