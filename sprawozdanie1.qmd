@@ -40,6 +40,9 @@ library(tidyverse)
 library(patchwork)
 library(ggmosaic)
 library(ggplot2)
+library(likert)
+library(qqplotr)
+knitr::opts_chunk$set(dev='cairo_pdf')
 ```
 
 ```{r}
@@ -175,7 +178,8 @@ Wykres słupkowy dla zmiennej **PYT_1**.
 ```{r}
 p1 <- ggplot(ankieta, aes(x=PYT_1, fill=PYT_1)) + 
   geom_bar(color='white') + 
-  labs(title='Pytanie 1', fill='Odpowiedzi') 
+  labs(title='Pytanie 1', fill='Odpowiedzi', 
+       x='Odpowiedź', y='Liczba odpowiedzi') 
 p1
 ```
 
@@ -192,7 +196,7 @@ p2
 Wykres słupkowy dla zmiennej **PYT_2**.
 
 ```{r, echo=FALSE}
-p2 <- ggplot(ankieta, aes(x=PYT_2, fill=PYT_2)) + geom_bar(color='white') + labs(title='Pytanie 2', fill='Odpowiedzi') 
+p2 <- ggplot(ankieta, aes(x=PYT_2, fill=PYT_2)) + geom_bar(color='white') + labs(title='Pytanie 2', fill='Odpowiedzi', x='Odpowiedź', y='Liczba odpowiedzi') 
 p2
 ```
 
@@ -320,11 +324,167 @@ Hipoteza: Oferta szkoleń w firmie jest dobrze dopasowana do osób z wieloletnim
 
 ## Zadanie 2
 
+Zilustrowano odpowiedzi na pytanie "Jak bardzo zgadzasz się ze stwierdzeniem, że firma pozwala na (...)?" (zmienna **PYT_1**) w całej badanej grupie oraz w podgrupach ze względu na zmienną **CZY_KIER**.
+
+Wyniki dla całej grupy.
+
+```{r}
+ankieta |> 
+  group_by(PYT_1) |> 
+  summarise('%' = n() / nrow(ankieta))
+```
+
+```{r}
+ankieta |> 
+  group_by(PYT_1) |> 
+  summarise(n=n()) |> 
+  ggplot(aes(x=PYT_1, y=n, fill=PYT_1)) + 
+  geom_bar(stat='identity') + 
+  labs(title='Pytanie 1', x='Odpowiedź', y='Liczba odpowiedzi') + 
+  theme(legend.position = 'none')
+```
+
+Wyniki dla podgrup ze względu na zmienną **CZY_KIER**.
+
+```{r}
+ankieta |> 
+  group_by(PYT_1, CZY_KIER) |> 
+  summarise(n = n(), .groups='keep') |> 
+  ggplot(aes(x = PYT_1, y = n, fill = CZY_KIER)) + 
+  geom_bar(stat = 'identity', position = 'dodge') + 
+  labs(title='Pytanie 1 w zależności od stanowiska', 
+       x='Odpowiedź', y='Liczba odpowiedzi') + 
+  theme(legend.position = 'bottom')
+```
+
 ## Zadanie 3
+
+Przetestowano działanie funkcji *sample* z biblioteki *stats* dla różnych wartości argumentów wejściowych. Następnie wylosowano próbkę o liczności 10% wszystkich rekordów z pliku "ankieta.csv" w dwóch wersjach: ze zwracaniem oraz bez zwracania.
+
+Przykłady działania funkcji *sample* z biblioteki *stats.*
+
+Losowanie ze zwracaniem.
+
+```{r}
+example = 1:5
+for (n in 2:4) {
+  print(sample(example, n, replace=TRUE))
+}
+```
+
+Losowanie bez zwracania.
+
+```{r}
+for (n in 2:4) {
+  print(sample(example, n, replace=FALSE))
+}
+```
+
+Próbka wylosowana ze zwracaniem.
+
+```{r}
+ankieta[
+  sample(nrow(ankieta), nrow(ankieta)*0.1, replace=TRUE), 
+  ]
+```
+
+Próbka wylosowana bez zwracania.
+
+```{r}
+ankieta[
+  sample(nrow(ankieta), nrow(ankieta)*0.1, replace=FALSE), 
+  ]
+```
 
 ## Zadanie 4
 
-## Zadanie 5
+Zaproponowano metodę symulowania zmiennych losowych z rozkładu dwumianowego. Napisano funkcję do generowania realizacji, a następnie zaprezentowano jej działanie porównując wybrane teoretyczne i empiryczne charakterystyki dla przykładowych wartości paramertów rozkładu: *n* i *p*.
+
+```{r}
+bin_rvs <- function(n, p) {
+  sum(sample(c(0, 1), n, replace=TRUE, prob=c(1-p, p)))
+ }
+```
+
+```{r}
+n <- 10
+p <- 0.5
+xs <- tibble(Value=replicate(100*n, bin_rvs(n, p)))
+ggplot(xs, aes(x=Value)) +
+  geom_histogram(
+    aes(y=after_stat(density)), bins=n+1, color="black", binwidth = 1
+    ) +
+  stat_function(
+    fun=dbinom, color='red',
+    xlim=c(0, 10),
+    args=list(size=n, prob=p),
+    geom='point',
+    n=11
+    ) +
+  ggtitle(
+    "Przykładowy histogram 1000 obserwacji z rozkładu Bin(10, 0.5)"
+    ) +
+  ylab("Gęstość prawdopodobieństwa") +
+  xlab("Wartość wylosowana z rozkładu dwumianowego")
+```
+
+```{r}
+ggplot(xs, aes(x=Value)) +
+  stat_ecdf(geom="step", color="blue") +
+  stat_function(
+    fun=pbinom, color='red', args=list(size=n, prob=p)
+    ) +
+  ggtitle("Empirical CDF vs Theoretical CDF") +
+  ylab("P(X <= x)") +
+  xlab("x")
+```
+
+```{r}
+ggplot(xs, aes(sample=Value)) +
+  stat_qq_point(
+    distribution="binom", dparams=list(size=n, prob=p)
+    ) +
+  stat_qq_line(
+    distribution="binom", dparams=list(size=n, prob=p)
+    ) +
+  stat_qq_band(
+    distribution="binom", dparams=list(size=n, prob=p), bandType="ell"
+    ) +
+  ylab("Kwantyle z próby") +
+  xlab("Kwantyle teoretyczne")
+```
+
+## Zadanie 5				
+
+Zaproponowano metodę symulowania wektorów losowych z rozkładu wielomianowego. Napisano funkcję do generowania realizacji, a następnie zaprezentowano jej działanie porównując wybrane teoretyczne i empiryczne charakterystyki dla przykładowych wartości paramertów rozkładu: *n i p*.
+
+```{r}
+multinomial_rv <- function(n, p) {
+  X <- rep(0, length(p))
+  for (i in 1:n) {
+    temp <- sample(1:length(p), 1, prob=p)
+    X[temp] <- X[temp] + 1
+  }
+  X
+}
+```
+
+```{r}
+multinomial_rvs <- function(size, n, p) {
+  matrix(
+    replicate(size, multinomial_rv(n, p)), nrow=length(p)
+    )
+}
+```
+
+```{r}
+p <- c(0.1, 0.2, 0.3, 0.4)
+n <- 10
+size <- 100
+x <- multinomial_rvs(size, n, p)
+rowSums(x) / size / n  # empiryczne prawdopodbieństwa
+p  # teoretyczne prawdopodobieństwa
+```
 
 # Część III oraz IV
 
