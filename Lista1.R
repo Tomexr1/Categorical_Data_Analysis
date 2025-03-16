@@ -2,6 +2,7 @@ library(tidyverse)
 library(patchwork)
 library(ggmosaic)
 library(ggplot2)
+library(DescTools)
 
 ankieta <- read.csv('/Users/tomasz/Politechnika/semestr_6/ankiety/ankieta.csv', header = TRUE, sep = ";", check.names = F)
 ankieta |> View()
@@ -116,6 +117,18 @@ x <- multinomial_rvs(size, n, p)
 rowSums(x) / size / n  # empiryczne prawdopodbieństwa
 p  # teoretyczne prawdopodobieństwa
 
+
+logit_CI <- function(x, n, alpha=0.05) {
+  p <- x / n
+  se <- sqrt(1 / (p * (1 - p) * n))
+  z <- qnorm(alpha / 2)
+  L <- Logit(p) - z * se
+  U <- Logit(p) + z * se
+  data.frame(est=p, lwr.ci=exp(U) / (1 + exp(U)), upr.ci=exp(L) / (1 + exp(L)))
+}
+
+logit_CI(3,10)
+BinomCI(3, 10, method="logit")
 
 
 
