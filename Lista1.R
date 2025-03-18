@@ -130,8 +130,83 @@ logit_CI <- function(x, n, alpha=0.05) {
 logit_CI(3,10)
 BinomCI(3, 10, method="logit")
 
+logit_CI(30,100)
+BinomCI(30, 100, method="logit")
 
+# zad 6
+CP_CI <- function(conf.level, x, n=NA) {
+  if (is.na(n)) {
+    n <- x[2]
+    x <- x[1]
+  }
+  alpha <- 1 - conf.level
+  L <- qbeta(alpha / 2, x, n - x + 1)
+  U <- qbeta(1 - alpha / 2, x + 1, n - x)
+  if (x == 0) {
+    L <- 0
+  }
+  if (x == n) {
+    U <- 1
+  }
+  data.frame(est=x/n, lwr.ci=L, upr.ci=U)
+}
 
+# zad 7
+ankieta['CZY_ZADOW_2'] <- ifelse(ankieta$PYT_3 %in% c(1, 2), 'zadowolony', 'niezadowolony')
+x_zadw <- ankieta |> filter(CZY_ZADOW == 'zadowolony') |> nrow()
+x_zadw2 <- ankieta |> filter(CZY_ZADOW_2 == 'zadowolony') |> nrow()
+n <- nrow(ankieta)
+CP_CI(0.95, c(x_zadw, n))
+BinomCI(x_zadw, n, method="clopper-pearson", conf.level=0.95)
+CP_CI(0.95, x_zadw2, n)
+BinomCI(x_zadw2, n, method="clopper-pearson", conf.level=0.95)
 
-  
-  
+# zad 9
+sprawdzaj_CI_exact <- function(n, p, method, alpha=0.05){
+  X <- dbinom(0:n, n, p) # prawdopodobieństwa
+  wyniki <- BinomCI(0:n, n, method=method, conf.level=1-alpha)
+  dlugosc <- sum((wyniki[,'upr.ci'] - wyniki[,'lwr.ci']) * X)
+  Y <- sum(1*((wyniki[, 2] <= p) & (p <= wyniki[,3])) * X) # p w przedziale średnio
+  list(valid=Y>1-alpha, length=dlugosc, coverage=Y)
+}
+
+best_of_methods <- function(n, p, methods, ...){
+  ramka <- data.frame(valid=c(), length=c(), coverage=c())
+  for (method in methods) {
+    ramka <- tryCatch({
+      rbind(ramka, as.data.frame(sprawdzaj_CI_exact(n, p, method, ...)))
+    }, error=function(...){
+      rbind(ramka, data.frame(valid=FALSE, length=NA, coverage=NA))
+    })
+  }
+  ramka$method <- methods
+  valid_methods <- ramka[ramka$valid, ]
+  valid_methods[which.min(valid_methods$length), ]
+  which(valid_methods[which.min(valid_methods$length),]$method == methods)
+}
+
+methods <- c("clopper-pearson", "wald", "jeffreys")
+
+ns <- c(30, 100, 1000)
+ps <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+wyniki <- matrix(NA, nrow=length(ns), ncol=length(ps))
+for (i in 1:length(ns)){
+  for (j in 1:length(ps)){
+    wyniki[i, j] <- best_of_methods(ns[i], ps[j], methods)
+  }
+}
+rownames(wyniki) <- ns
+colnames(wyniki) <- ps
+data <- expand.grid(Var1=rownames(wyniki), Var2=colnames(wyniki))
+data$value <- as.vector(wyniki)
+data$method <- methods[data$value]
+colors = hcl.colors(length(methods), 'ylorRd', rev=TRUE)
+ggplot(data, aes(x=Var1, y=Var2, fill=factor(value))) +
+  geom_tile() +
+  geom_tile(color = "#00000022") +
+  scale_fill_manual(values = colors, labels=methods)+
+  coord_equal() +
+  theme_bw() +
+  labs(title="Best method for different n and p",
+       x="n", y="p", fill="method") 
+
