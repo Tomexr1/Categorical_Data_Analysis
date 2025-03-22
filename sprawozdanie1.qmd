@@ -560,7 +560,7 @@ CP_CI <- function(conf.level, x, n=NA) {
 
 ## Zadanie 7
 
-Korzystając z funkcji napisanej w zadaniu 6. wyznaczono realizacje przedziałów ufności dla prawdopodobieństwa, że pracownik uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie oraz w drugim badanym okresie. Skorzystano ze zmiennych **CZY_ZADW** oraz **CZY_ZADW_2** (utwórzono zmienną analogicznie jak w zadaniu 1.7). Przyjęto 1 − $\alpha$ = 0.95.
+Korzystając z funkcji napisanej w zadaniu 6. wyznaczono realizacje przedziałów ufności dla prawdopodobieństwa, że pracownik uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie oraz w drugim badanym okresie. Skorzystano ze zmiennych **CZY_ZADW** oraz **CZY_ZADW_2** (zmienną utworzono analogicznie jak w zadaniu 1.7). Przyjęto 1 − $\alpha$ = 0.95.
 
 ```{r}
 ankieta['CZY_ZADOW_2'] <- ifelse(ankieta$PYT_3 %in% c(1, 2),
@@ -646,7 +646,7 @@ BinomCI(50, 100, method="clopper-pearson")
 
 ## Zadanie 9
 
-Przeprowadzono symulacje, których celem jest porównanie prawdopodobieństwa pokrycia i długości przedziałów ufności Cloppera-Pearsona, Walda i Jeffreysa. Rozważono 1-$\alpha$ = 0.95, rozmiar próby n $\in$ {30,100,1000} i różne wartości prawdopodobieństwa *p*. Wyniki umieszczono na wykresach i sformułowano wnioski, które dla konkretnych danych ułatwiają wybór konkretenego typu przedziału ufności.
+Przeprowadzono symulacje, których celem jest porównanie prawdopodobieństwa pokrycia i długości przedziałów ufności Cloppera-Pearsona, Walda i Jeffreysa. Rozważono 1 - $\alpha$ = 0.95, rozmiar próby n $\in$ {30,100,1000} i różne wartości prawdopodobieństwa *p*. Wyniki umieszczono na wykresach i sformułowano wnioski, które dla konkretnych danych ułatwiają wybór konkretenego typu przedziału ufności.
 
 ```{r}
 sprawdzaj_CI_exact <- function(n, p, method, alpha=0.05){
