@@ -701,9 +701,9 @@ ggplot(data, aes(x=Var1, y=Var2, fill=factor(value))) +
 
 Wykres należy interpretować, sprawdzając kolor odpowiedniego kwadratu i odczytując przypisaną mu metodę z legendy.
 
-W większości przypadków najlepszym wyborem okazał się przedział oparty na metodzie Jeffreysa. 
+W większości przypadków najlepszym wyborem okazał się przedział oparty na metodzie Jeffreysa.
 
-Drugie miejsce zajęła metoda Cloppera--Pearsona, która sprawdziła się przy małej wielkości próby (*n*=30) oraz skrajnych wartości parametru *p* (bliskich 0 lub 1). Była również skuteczna przy większych próbach (*n* $\in$ {100, 1000}), gdy *p* było bliskie 0.5. 
+Drugie miejsce zajęła metoda Cloppera--Pearsona, która sprawdziła się przy małej wielkości próby (*n*=30) oraz skrajnych wartości parametru *p* (bliskich 0 lub 1). Była również skuteczna przy większych próbach (*n* $\in$ {100, 1000}), gdy *p* było bliskie 0.5.
 
 Przedział otrzymany za pomocą metody Walda był najlepszy tylko dla dużej próby (*n*=1000) i skrajnych wartości prawdopodobieństwa (*p* $\in$ {0.1, 0.9}).
 
@@ -716,6 +716,28 @@ Przedział otrzymany za pomocą metody Walda był najlepszy tylko dla dużej pr�
 ## Zadanie 12
 
 # Zadanie dodatkowe
+
+W oparciu o funkcję centralną asymptotyczną $$
+Q(Y, p) = \frac{\sqrt{n}\big(g(\hat{p}(Y)-g(p)\big)}{g'(\hat{p}(Y))\hat{\sigma}}
+$$ dąży wg. rozkładu do $N(0,1)$ dla zmiennej losowej $Y$ z rozkładu dwumianowego o liczbie prób $n$ i nieznanym parametrze prawdopodbieństwa $p$. W celu wyznaczenia przedziału ufności logit wybieramy $g(p) = \log{\frac{p}{1-p}}$. Pochodna tej funkcji to $\frac{\operatorname{d}\!g}{\operatorname{d}\!p}=\frac{1}{p(1+p)}$. Za estymator odchylenia standardowego bierzemy $\hat{\sigma} = \sqrt{p(1-p)}$ i estymator $p$ -- estymator największej wiarygności $\hat{p} = \frac{Y}{n}$. Teraz wyznaczamy przedział ufności dla parmetru $g(p)$.
+$$
+P(-z_{1-\frac{\alpha}{2}}\le Q(Y,p)\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
+P(-z_{1-\frac{\alpha}{2}}\le \frac{\sqrt{n}(g(\hat{p})-g(p))}{\frac{1}{p(1-p)}\sqrt{p(1-p)}}\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
+P\big(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\le g(p)\le g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\big) = 1 - \alpha \\
+$$
+Zatem przdział ten jest postaci $[T_L', T_U']$, gdzie
+$$
+T_L' = g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}},\\
+T_U' = g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}},
+$$
+gdzie $z_\beta$ to kwantyl standardowego rozkładu normalnego rzędu $\beta$.\\
+Biorąc funkcję odwrotną otrzymujemy asymptotyczny przedział ufności logit dla parametru $p$ postaci $[T_L, T_U]$, gdzie
+$$
+T_L = g^{-1}\biggr(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\biggr),\\
+T_U = g^{-1}\biggr(g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\biggr).
+$$
+Poniżej zaimplementowano jego realizację dla obserwowanych realizacji zmiennych losowych.
+
 
 ```{r}
 logit_CI <- function(x, n, alpha=0.05) {
