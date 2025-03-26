@@ -117,14 +117,15 @@ x <- multinomial_rvs(size, n, p)
 rowSums(x) / size / n  # empiryczne prawdopodbieństwa
 p  # teoretyczne prawdopodobieństwa
 
-
+# zadanie dodatkowe
 logit_CI <- function(x, n, alpha=0.05) {
   p <- x / n
   se <- sqrt(1 / (p * (1 - p) * n))
-  z <- qnorm(alpha / 2)
+  z <- qnorm(1 - alpha / 2)
   L <- Logit(p) - z * se
   U <- Logit(p) + z * se
-  data.frame(est=p, lwr.ci=exp(U) / (1 + exp(U)), upr.ci=exp(L) / (1 + exp(L)))
+  # data.frame(est=p, lwr.ci=exp(L) / (1 + exp(L)), upr.ci=exp(U) / (1 + exp(U)))
+  data.frame(est=p, lwr.ci=LogitInv(L), upr.ci=LogitInv(U))
 }
 
 logit_CI(3,10)
@@ -136,8 +137,10 @@ BinomCI(30, 100, method="logit")
 # zad 6
 CP_CI <- function(conf.level, x, n=NA) {
   if (is.na(n)) {
-    n <- x[2]
-    x <- x[1]
+    
+    dane <- x
+    x <- sum(dane=='zadowolony')
+    n <- length(dane)
   }
   alpha <- 1 - conf.level
   L <- qbeta(alpha / 2, x, n - x + 1)
@@ -156,7 +159,7 @@ ankieta['CZY_ZADOW_2'] <- ifelse(ankieta$PYT_3 %in% c(1, 2), 'zadowolony', 'niez
 x_zadw <- ankieta |> filter(CZY_ZADOW == 'zadowolony') |> nrow()
 x_zadw2 <- ankieta |> filter(CZY_ZADOW_2 == 'zadowolony') |> nrow()
 n <- nrow(ankieta)
-CP_CI(0.95, c(x_zadw, n))
+CP_CI(0.95, ankieta$CZY_ZADOW)
 BinomCI(x_zadw, n, method="clopper-pearson", conf.level=0.95)
 CP_CI(0.95, x_zadw2, n)
 BinomCI(x_zadw2, n, method="clopper-pearson", conf.level=0.95)
@@ -166,7 +169,7 @@ sprawdzaj_CI_exact <- function(n, p, method, alpha=0.05){
   X <- dbinom(0:n, n, p) # prawdopodobieństwa
   wyniki <- BinomCI(0:n, n, method=method, conf.level=1-alpha)
   dlugosc <- sum((wyniki[,'upr.ci'] - wyniki[,'lwr.ci']) * X)
-  Y <- sum(1*((wyniki[, 2] <= p) & (p <= wyniki[,3])) * X) # p w przedziale średnio
+  Y <- sum(1*((wyniki[, 2] <= p) & (p <= wyniki[,3])) * X) 
   list(valid=Y>1-alpha, length=dlugosc, coverage=Y)
 }
 
@@ -187,8 +190,23 @@ best_of_methods <- function(n, p, methods, ...){
 
 methods <- c("clopper-pearson", "wald", "jeffreys")
 
+# dwa wykresy z polecenia z listy tj. długość przedziału ufności w zależności od p oraz prawdopodobieństwo pokrycia w zależności od p dla róznych n i metod
+
 ns <- c(30, 100, 1000)
-ps <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+ps <- seq(from = 0.01, to = 0.99, by = 0.01)
+
+results <- data.frame(method=c(), n=c(), p=c(), valid=c(), length=c(), coverage=c())
+for (n in ns){
+  for (p in ps){
+    for (method in methods){
+      res <- sprawdzaj_CI_exact(n, p, method)
+      results <- rbind(results, data.frame(method=method, n=n, p=p, res))
+  }}}
+results |> ggplot(aes(x=p, y=length, color=method)) + geom_point() + labs(title='Długość przedziału ufności w zależności od p', x='p', y='Długość przedziału ufności') + theme_minimal() + facet_wrap(~n)
+results |> ggplot(aes(x=p, y=coverage, color=method)) + geom_point() + labs(title='Długość przedziału ufności w zależności od p', x='p', y='Prawdopodobieństwo pokrycia') + theme_minimal() + facet_wrap(~n) + geom_hline(yintercept=0.95, linetype='dashed')
+
+
+# dla ustalonych n i p sprawdzamy, która metoda jest valid (prawdopodobieństwo pokrycia > 0.95) i ma najkrótszy przedział ufności
 wyniki <- matrix(NA, nrow=length(ns), ncol=length(ps))
 for (i in 1:length(ns)){
   for (j in 1:length(ps)){
@@ -209,4 +227,95 @@ ggplot(data, aes(x=Var1, y=Var2, fill=factor(value))) +
   theme_bw() +
   labs(title="Best method for different n and p",
        x="n", y="p", fill="method") 
+
+# zad 10
+library(stats)
+# binom.test - test dokładny https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/binom.test
+# prop.test - test z normalnym przybliżeniem https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/prop.test
+
+# zad 12
+p0 <- 0.9
+alpha <- 0.05
+
+test <- function(x, n){
+  p_hat <- x/n
+  
+  H_exact <- ifelse(binom.test(x, n, p=p0)$p.value < alpha, 'H1', 'H0')
+  H_asymptotic <- ifelse(prop.test(x, n, p=p0)$p.value < alpha, 'H1', 'H0')
+  
+  data.frame(method = c('H_exact', 'H_asymptotic'),
+             H = c(H_exact, H_asymptotic))
+}
+
+power <- function(p_true, n, N = 1000) {
+  
+  MC_exact <- 0
+  MC_asymptotic <- 0
+  
+  for (i in 1:N) {
+    X <- rbinom(1, n, p_true)
+    res = test(X, n)
+    MC_exact <- MC_exact + (res$H[1] == "H1")
+    MC_asymptotic <- MC_asymptotic + (res$H[2] == "H1")
+  }
+  
+  MC_exact <- MC_exact / N
+  MC_asymptotic <- MC_asymptotic / N
+  
+  data.frame(method = c('Exact', 'Asymptotic'),
+             power = c(MC_exact, MC_asymptotic))
+}
+
+plot_power <- function(n, N = 1000, ps = seq(0, 1, 0.01), title="Moc testu dla różnych wartości p", diff=FALSE) {
+  plot_data <- data.frame()
+  for (p in ps) {
+    plot_data <- rbind(plot_data, cbind(data.frame(p=p), power(p, n, N)))
+  }
+  if (diff) {
+    split_dfs <- split(plot_data, plot_data$method)
+    
+    exact_power <- split_dfs[["Exact"]][, "power"]
+    
+    split_dfs[["Asymptotic"]][, "power"] <- split_dfs[["Asymptotic"]][, "power"] - exact_power
+    
+    asymptotic_df <- split_dfs[["Asymptotic"]]
+    
+    p1 <- ggplot(plot_data, aes(x=p, y=power, color=method, linetype=method)) +
+      geom_line() +
+      geom_hline(yintercept = 0.05, linetype="dashed") +
+      scale_color_brewer(palette = "Set1", name = "Metoda") +
+      scale_linetype_discrete(name = "Metoda") +
+      labs(title = title, 
+           x = "p", 
+           y = "Moc testu") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    p2 <- ggplot(asymptotic_df, aes(x=p, y=power, color=method, linetype=method)) +
+      geom_line() +
+      scale_color_brewer(palette = "Set1", name = "Metoda") +
+      scale_linetype_discrete(name = "Metoda") +
+      labs(title = title, 
+           x = "p", 
+           y = "Różnica mocy testów \n(poziom bazowy - Exact)") +
+      theme(legend.position = "none") +
+      theme_minimal()
+    p1 / p2 + plot_layout(guides = 'collect') + theme(legend.position = "none")
+    
+    
+  } else {
+    ggplot(plot_data, aes(x=p, y=power, color=method, linetype=method)) +
+      geom_line() +
+      geom_hline(yintercept = 0.05, linetype="dashed") +
+      scale_color_brewer(palette = "Set1", name = "Metoda") +
+      scale_linetype_discrete(name = "Metoda") +
+      labs(title = title, 
+           x = "p", 
+           y = "Moc testu") +
+      theme_minimal()
+  }
+}
+
+n <- 100
+plot_power(n, N = 1000, title = 'Moc testu dla różnych wartości p - krok 0.01', diff=TRUE) /
+  plot_power(n, N = 1000, ps = seq(0.85, 0.95, 0.001), title = 'Moc testu dla różnych wartości p - krok 0.001') + plot_layout(guides = 'collect')
 
