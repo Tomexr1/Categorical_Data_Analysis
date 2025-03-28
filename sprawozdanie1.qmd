@@ -646,17 +646,76 @@ BinomCI(50, 100, method="clopper-pearson")
 
 ## Zadanie 9
 
-Przeprowadzono symulacje, których celem jest porównanie prawdopodobieństwa pokrycia i długości przedziałów ufności Cloppera-Pearsona, Walda i Jeffreysa. Rozważono 1 - $\alpha$ = 0.95, rozmiar próby n $\in$ {30,100,1000} i różne wartości prawdopodobieństwa *p*. Wyniki umieszczono na wykresach i sformułowano wnioski, które dla konkretnych danych ułatwiają wybór konkretenego typu przedziału ufności.
+Przeprowadzono symulacje, których celem jest porównanie prawdopodobieństwa pokrycia i długości przedziałów ufności Cloppera-Pearsona, Walda i Jeffreysa. Rozważono 1 - $\alpha$ = 0.95, rozmiar próby n $\in$ {30,100,1000} i różne wartości prawdopodobieństwa *p*. Wyniki umieszczono na wykresach i sformułowano wnioski, które dla konkretnych danych ułatwiają wybór konkretnego typu przedziału ufności.
+
+```{r}
+methods <- c("clopper-pearson", "wald", "jeffreys")
+ns <- c(30, 100, 1000)
+ps <- seq(from = 0.01, to = 0.99, by = 0.01)
+```
+
+Funkcja *sprawdzaj_CI_exact* dla danej metody zwraca listę zawierającą trzy elementy :
+
+-   *valid* -- zmienna określająca, czy prawdopodobieństwo pokrycia jest równe co najmniej 0.95,
+
+-   *length* -- średnią długość przedziału ufności,
+
+-   *coverage* -- prawdopodobieństwo pokrycia.
 
 ```{r}
 sprawdzaj_CI_exact <- function(n, p, method, alpha=0.05){
-  X <- dbinom(0:n, n, p) # prawdopodobieństwa
+  X <- dbinom(0:n, n, p)
   wyniki <- BinomCI(0:n, n, method=method, conf.level=1-alpha)
   dlugosc <- sum((wyniki[,'upr.ci'] - wyniki[,'lwr.ci']) * X)
-  Y <- sum(1*((wyniki[, 2] <= p) & (p <= wyniki[,3])) * X) 
-  # p w przedziale średnio
-  list(valid=Y>1-alpha, length=dlugosc, coverage=Y)
+  Y <- sum(1*((wyniki[, 'lwr.ci'] <= p) & (p <= wyniki[, 'upr.ci'])) * X) 
+  list(valid=Y>=1-alpha, length=dlugosc, coverage=Y)
 }
+
+results <- data.frame(method=c(), n=c(), p=c(), valid=c(),
+                      length=c(), coverage=c())
+for (n in ns){
+  for (p in ps){
+    for (method in methods){
+      res <- sprawdzaj_CI_exact(n, p, method)
+      results <- rbind(results, data.frame(method=method, n=n, p=p, res))
+  }}}
+```
+
+Przy interpretacji wyników dla danej metody interesować nas będzie zarówno średnia długość przedziału, jak i prawdopodobieństwo pokrycia dla parametru *p*. Poniżej zaprezentowano trzy wykresy: pierwszy z nich przedstawia średnią długość przedziału w zależności od wartości *p*, drugi wykres pokazuje poziom pokrycia w zależności od *p*. Na końcu natomiast znajduje się tzw. "studnia" -- dla ustalonej paru parametrów *n* i *p* wskazuje ona metodę, dla której średnią długość jest najmniejsza oraz prawdopodopodobieństwo pokrycia jest równe co najmniej zadanemu poziomowi ufności.
+
+Przy wykorzystaniu funkcji *sprawdzaj_CI_exact*, naniesiono na wykres średnią długość przedziału ufności w zależności od *p* dla wszytskich badanych metod oraz wartości *n*.
+
+```{r}
+results |> 
+  ggplot(aes(x=p, y=length, color=method)) +
+  geom_point() + 
+  labs(title='Średnia długość przedziału ufności w zależności od p',
+       x='p', y='Średnia długość przedziału ufności') + 
+  theme_minimal() + 
+  facet_wrap(~n)
+```
+
+Najkrótszym przedziałem ufności najczęściej okazuje się przedział Jeffreysa. Nieco gorszy jest przedział Walda, natomiast przedział Cloppera-Pearsona wypada najgorzej. Różnice widoczne są dla małej wielkości próby (*n*=30) i zaczynają zanikać wraz z jej wzrostem.
+
+Przy wykorzystaniu funkcji *sprawdzaj_CI_exact*, naniesiono na wykres prawdopodobieństwo pokrycia w zależności od *p* dla wszytskich badanych metod oraz wartości *n*.
+
+```{r}
+results |> 
+  ggplot(aes(x=p, y=coverage, color=method)) + 
+  geom_point() + 
+  labs(title='Prawdopodobieństwo pokrycia w zależności od p',
+       x='p', y='Prawdopodobieństwo pokrycia') +
+  theme_minimal() + 
+  facet_wrap(~n) + 
+  geom_hline(yintercept=0.95, linetype='dashed')
+```
+
+Prawdopodobieństwo pokrycia dla przedziału opartego na metodzie Cloppera-Pearsona dla każdej pary parametrów jest równa co najmniej zadanemu poziomowi ufności. Przedział Jeffreysa dla większości przypadków także zapewniał odpowiednie pokrycie. Przedział Walda wypadł w tym zestawieniu najgorzej. Podobnie jak w przypadku wykresu dotyczącego średniej długości przedziału, różnice te zaczynają się zacierać wraz ze wzrostem rozmiaru próby.
+
+Przy wykorzystaniu funkcji *sprawdzaj_CI_exact* stworzono tzw. "studnię" – dla każdej pary parametrów sprawdzono, czy dana metoda zapewnia odpowiedni poziom pokrycia, a następnie, spośród kwalifikujących się metod, wybrano tę o najkrótszej średniej długości przedziału.
+
+```{r}
+ps <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 
 best_of_methods <- function(n, p, methods, ...){
   ramka <- data.frame(valid=c(), length=c(), coverage=c())
@@ -669,14 +728,9 @@ best_of_methods <- function(n, p, methods, ...){
   }
   ramka$method <- methods
   valid_methods <- ramka[ramka$valid, ]
-  valid_methods[which.min(valid_methods$length), ]
   which(valid_methods[which.min(valid_methods$length),]$method == methods)
 }
 
-methods <- c("clopper-pearson", "wald", "jeffreys")
-
-ns <- c(30, 100, 1000)
-ps <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 wyniki <- matrix(NA, nrow=length(ns), ncol=length(ps))
 for (i in 1:length(ns)){
   for (j in 1:length(ps)){
@@ -719,25 +773,19 @@ Przedział otrzymany za pomocą metody Walda był najlepszy tylko dla dużej pr�
 
 W oparciu o funkcję centralną asymptotyczną $$
 Q(Y, p) = \frac{\sqrt{n}\big(g(\hat{p}(Y)-g(p)\big)}{g'(\hat{p}(Y))\hat{\sigma}}
-$$ dąży wg. rozkładu do $N(0,1)$ dla zmiennej losowej $Y$ z rozkładu dwumianowego o liczbie prób $n$ i nieznanym parametrze prawdopodbieństwa $p$. W celu wyznaczenia przedziału ufności logit wybieramy $g(p) = \log{\frac{p}{1-p}}$. Pochodna tej funkcji to $\frac{\operatorname{d}\!g}{\operatorname{d}\!p}=\frac{1}{p(1+p)}$. Za estymator odchylenia standardowego bierzemy $\hat{\sigma} = \sqrt{p(1-p)}$ i estymator $p$ -- estymator największej wiarygności $\hat{p} = \frac{Y}{n}$. Teraz wyznaczamy przedział ufności dla parmetru $g(p)$.
-$$
+$$ dąży wg. rozkładu do $N(0,1)$ dla zmiennej losowej $Y$ z rozkładu dwumianowego o liczbie prób $n$ i nieznanym parametrze prawdopodbieństwa $p$. W celu wyznaczenia przedziału ufności logit wybieramy $g(p) = \log{\frac{p}{1-p}}$. Pochodna tej funkcji to $\frac{\operatorname{d}\!g}{\operatorname{d}\!p}=\frac{1}{p(1+p)}$. Za estymator odchylenia standardowego bierzemy $\hat{\sigma} = \sqrt{p(1-p)}$ i estymator $p$ -- estymator największej wiarygności $\hat{p} = \frac{Y}{n}$. Teraz wyznaczamy przedział ufności dla parmetru $g(p)$. $$
 P(-z_{1-\frac{\alpha}{2}}\le Q(Y,p)\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
 P(-z_{1-\frac{\alpha}{2}}\le \frac{\sqrt{n}(g(\hat{p})-g(p))}{\frac{1}{p(1-p)}\sqrt{p(1-p)}}\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
 P\big(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\le g(p)\le g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\big) = 1 - \alpha \\
-$$
-Zatem przdział ten jest postaci $[T_L', T_U']$, gdzie
-$$
+$$ Zatem przdział ten jest postaci $[T_L', T_U']$, gdzie $$
 T_L' = g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}},\\
 T_U' = g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}},
-$$
-gdzie $z_\beta$ to kwantyl standardowego rozkładu normalnego rzędu $\beta$.\\
-Biorąc funkcję odwrotną otrzymujemy asymptotyczny przedział ufności logit dla parametru $p$ postaci $[T_L, T_U]$, gdzie
-$$
+$$ gdzie $z_\beta$ to kwantyl standardowego rozkładu normalnego rzędu $\beta$.\\ Biorąc funkcję odwrotną otrzymujemy asymptotyczny przedział ufności logit dla parametru $p$ postaci $[T_L, T_U]$, gdzie $$
 T_L = g^{-1}\biggr(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\biggr),\\
 T_U = g^{-1}\biggr(g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\biggr).
 $$
-Poniżej zaimplementowano jego realizację dla obserwowanych realizacji zmiennych losowych.
 
+Poniżej zaimplementowano jego realizację dla obserwowanych realizacji zmiennych losowych.
 
 ```{r}
 logit_CI <- function(x, n, alpha=0.05) {
