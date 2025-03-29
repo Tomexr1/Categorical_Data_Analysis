@@ -1,0 +1,427 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+format:
+  revealjs:
+    transition: slide
+    theme: serif
+    self-contained: true
+    header-includes:
+      - |
+        <style>
+          section {
+            overflow: auto; /* Dodaje przewijanie do sekcji */
+            max-height: 100vh; /* Maksymalna wysokość slajdu, reszta będzie przewijana */
+          }
+          .justified-text {
+            text-align: justify;
+          }
+          .reveal section {
+              padding-right: 30px; /* Dodaj margines po prawej stronie */
+            }
+          .centered {
+            text-align: center;
+           }
+           .centered-vertical {
+             display: flex;
+             flex-direction: column;
+             justify-content: center; /* Wyśrodkowanie w pionie */
+             align-items: center; /* Wyśrodkowanie w poziomie */
+             height: 100vh; /* Pełna wysokość slajdu */
+             width: 100%; /* Pełna szerokość slajdu */
+             text-align: center; /* Wyśrodkowanie tekstu */
+           }
+        </style>
+title-slide-attributes:
+        data-background-image: "img_prezentacja2.jpg"
+        data-background-size: cover
+        data-background-opacity: "0.65"
+        data-background-color: "#000000"
+---
+
+# Zwrot i ryzyko {.smaller}
+
+::: columns
+Najważniejsze miary zwrotów i ryzyka - metody pomiaru i przykłady.\
+
+![](images/clipboard-2766916212.png){fig-align="center" width="75%"}
+:::
+
+```{r}
+#| include: false 
+#| echo: false 
+library(reticulate)
+use_virtualenv("C:/Users/rafal/.virtualenvs/my-python", required = TRUE)
+
+
+
+```
+
+```{r}
+#| include: false 
+#| #| echo: false 
+#py_install("pandas", envname = "my-python") 
+#pandas <- import("pandas") 
+#py_install("jupyter", envname = "my-python")
+```
+
+```{python}
+import numpy as np # Load numpy  package 
+import pandas as pd # Load pandas package  
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+import pyfolio as pf
+```
+
+## Wariancja portfela
+
+```{python}
+# KOD Z PRZYKŁADOWĄ RAMKĄ DANYCH Z 4 FIRMAMI, OBLICZENIEM MACIERZY KOWARIANCJI MIĘDZY NIMI ORAZ OBLICZENIE WARIANCJI PORTFELA
+```
+
+## Stopy zwrotu {.smaller}
+
+-   Średnia stopa zwrotu
+-   Skumulowana stopa zwrotu
+-   Roczna stopa zwrotu
+-   **Zannualizowana stopa zwrotu** - roczna stopa zwrotu odpowiadająca wynikom z dowolnego okresu czasu
+
+```{python}
+# Tworzenie danych 
+dane = {     "Rok": ["Rok 1", "Rok 2", "Rok 3"],
+"Wartość portfela": [100, 200, 100],
+"Zwrot": [None, "100%", "-50%"] }  
+# Tworzenie DataFrame 
+df = pd.DataFrame(dane) 
+```
+
+### Średni zwrot vs zwrot zaanualizowany
+
+```{python}
+# Wyświetlenie tabeli 
+df.style.set_table_styles(
+    [{'selector': 'table', 'props': [('width', '100%')] }]
+)
+```
+
+-   Średnia stopa zwrotu -\> (100-50)/2=25 \[%\]
+-   Rzeczywista roczna stopa zwrotu (annualized return) -\> 0 \[%\]
+
+Jak porównywać ze sobą portfele z różnymi okresami inwestycji? Co z kapitalizacją?
+
+## Annualizacja
+
+::: justified-text
+Annualizacja oznacza przekształcenie danych krótkoterminowych w dane całoroczne. Jest to swego rodzaju prognoza, bazująca na ekstrapolacji wyników uzyskanych w jednym okresie. Opiera się ona na założeniu, że gdyby przez resztę roku sytuacja była taka sama jak w pierwszym kwartale, to w całym roku osiągniemy podobny wynik. Przykładowo, jeśli wzrost PKB w danym kwartale wyniósł 1% kdk, to annualizowane tempo wzrostu wyniosło 4,06%.
+
+Annualizacji można dokonywać także na danych z okresów powyżej jednego roku.
+
+$$
+A=(1+T)^{1/N}-1
+$$
+:::
+
+## Zwroty skorygowane o ryzyko 
+
+DWA PORTFELE DO WYBORU - JEDEN WIĘKSZY ZYSK I RYZYKO, DRUGI OBA MNIEJSZE
+
+DEFINICJA ZWROTU SKORYGOWANEGO O RYZYKO
+
+## Wskaźnik kształtu
+
+DEFINICJA
+
+### Zmienność roczna
+
+DEFINICJA
+
+### Przykład
+
+```{python}
+# przykład wskaźnika kształtu
+```
+
+## Nienormalne rozkłady stóp zwrotu
+
+PRZYKŁAD 2 STÓP ZWROTU O TEJ SAMEJ WARIANCJI
+
+### Skośność
+
+DEFINICJA, WSPÓŁCZYNNIK PEARSONA
+
+### Kurtoza
+
+DEFINICJA, INTUICJA
+
+## Alternatywne sposoby pomiaru ryzyka
+
+### Wskaźnik Sortino
+
+Definicja, intuicja
+
+```{python}
+#Długi wskaźnik
+```
+
+### Maksimum draw-down
+
+Definicja, intuicja, obrazek, kilka przykładów historycznych
+
+Masimum draw-down w pythonie
+
+## Jak starczy czasu: obliczenie wszystkich wskazanych miar dla wybranych danych rzeczywistych + wnioski + porównanie z przyszłością
+
+## Analiza portfela względem benchmarku {.centered-vertical}
+
+![](images/graph.jpg){fig-align="center" width="75%"}
+
+## <span style="font-size: 1em;">Aktywna stopa zwrotu</span>
+
+<div style="font-size: 0.7em;">
+
+- Miara efektywności inwestycji **względem** indeksu referencyjnego
+- Obliczana jako **różnica między stopami zwrotu rozważanej inwestycji i benchmarku**
+- Odpowiedni dobór wag → wysoka aktywna stopa zwrotu
+- Dla **pasywnych funduszy** inwestycyjnych i **funduszy indeksowych** (śledzących) aktywna stopa zwrotu jest interpretowana jako **błąd śledzenia**
+
+</div>
+
+![](images/port_bench.png){fig-align="center" width="75%"}
+
+## <span style="font-size: 1em;">Aktywne wagi</span>
+
+<div style="font-size: 0.7em;">
+
+- **Aktywna waga** to **różnica** między wagą w **portfelu** a wagą w **benchmarku**
+
+Instrumenty w portfelu inwestycyjnym mogą być:
+
+- **Przeważone** - gdy jego aktywna waga jest **dodatnia**
+- **Niedoważone** - gdy jego aktywna waga jest **ujemna**
+
+</div>
+
+![](images/active_weights.png){fig-align="center" width="75%"}
+
+---
+## Implementacja w Pythonie
+
+```{python}
+#| include: false
+#| echo: false
+portfolio_data1 = pd.read_csv('large_pf.csv')
+portfolio_data = portfolio_data1[["mean_return", "pf_weights", "bm_weights", "GICS Sector"]]
+```
+
+
+Wyświetlenie danych
+
+```{python}
+#| include: true
+#| echo: true
+print(portfolio_data.head())
+```
+
+Sprawdzenie, czy wagi sumują się do 100%
+
+```{python}
+#| include: true
+#| echo: true
+print(portfolio_data.pf_weights.sum())
+
+```
+Obliczanie całkowitych zwrotów dla portfela i indeksu referencyjnego
+
+```{python}
+#| include: true
+#| echo: true
+total_return_pf = (portfolio_data['pf_weights']*portfolio_data['mean_return']).sum()
+total_return_bm = (portfolio_data['bm_weights']*portfolio_data['mean_return']).sum()
+```
+
+Obliczanie aktywnego zwrotu 
+
+```{python}
+#| include: true
+#| echo: true
+active_return = total_return_pf - total_return_bm
+print ("%.2f%%" % active_return)
+```
+Analiza ze względu na sektor
+
+```{python}
+#| include: true
+#| echo: true
+grouped_df=portfolio_data.groupby('GICS Sector').sum()
+```
+
+```{python}
+#| include: true
+#| echo: true
+
+grouped_df['active_weight']=grouped_df['pf_weights']-grouped_df['bm_weights']
+print (grouped_df['active_weight'])
+```
+
+
+## <span style="font-size: 1em;">Czynniki ryzyka</span>
+
+<div style="font-size: 0.7em;">
+- **Cechy** instrumentów finansowych zawartych w portfelu, **wpływające na zmianę jego wartości** - stratę lub zysk
+- Dzielimy je na:
+  - **makroekonomiczne**: stopy procentowe, kursy walut, przepisy prawne, etc.
+  - **strategiczne**: wielkość, wartość, zmienność, dynamika, etc.
+</div>
+
+![](images/factors.png){fig-align="center" width="75%"}
+
+## <span style="font-size: 1em;">Zastosowania czynników ryzyka</span>
+
+![](images/applications.png){fig-align="center" width="75%"}
+
+## Implementacja w Pythonie
+
+```{python}
+#| include: false
+#| echo: false
+import matplotlib.pyplot as plt
+df = pd.read_csv('pf_factors.csv')
+```
+
+Wyświetlenie danych
+
+```{python}
+#| include: true
+#| echo: true
+df.head(3)
+```
+
+Obliczamy współczynniki korelacji między zwrotami S&P500 a czynnikami dynamiki i wartości
+
+```{python}
+#| include: true
+#| echo: true
+df['correlation_mom']=df['S&P500'].rolling(20).corr(df['WML'])
+df['correlation_value']=df['S&P500'].rolling(20).corr(df['value_factor'])
+```
+
+Generujemy wykres korelacji w czasie
+
+```{python}
+#| include: true
+#| echo: true
+plt.clf()
+plt.plot(df['correlation_mom'], label = "momentum")
+plt.plot(df['correlation_value'], label = "value")
+plt.title("Korelacja między czynnikami ryzyka a stopą zwrotu indeksu S&P500")
+plt.legend()
+plt.show()
+```
+Teraz sprawdźmy jak czynnik wartości wpływa na zmianę wartości portfela inwestycyjnego
+
+```{python}
+#| include: false
+#| echo: false
+factor_data = df[["WML", "value_factor", "portfolio"]]
+```
+
+Wyświetlenie danych
+
+```{python}
+#| include: true
+#| echo: true
+factor_data.head(3)
+```
+
+
+```{python}
+#| include: true
+#| echo: true
+factor_data.corr()
+```
+```{python}
+#| include: true
+#| echo: true
+plt.clf()
+factor_data['correlation_value']=factor_data['portfolio'].rolling(5).corr(factor_data['value_factor'])
+factor_data['correlation_value'].plot()
+plt.legend()
+plt.show()
+```
+
+## <span style="font-size: 1em;">Fama French Multi Factor Model</span>
+
+<div style="font-size: 0.7em;">
+
+$$
+R_{pf}=\alpha + \beta_mMKT + \beta_s SMB + \beta_h HML
+$$
+
+- MKT (market return) to **różnica** między **stopą zwrotu rynkowego** a **stopą wolną od ryzyka** 
+- SML (small minus big) **czynnik rozmiaru**, **różnica** między stopami zwrotów **małych** i **dużych** spółek
+- HML (high minus low) **czynnik wartości**, **różnica** między stopami zwrotów spółek **high value** i **low value**
+- Współczynniki $\beta_{(.)}$ mowią nam w jakim stopniu konkretny czynnik wyjaśnia zmiany stopy zwrotu z naszego portfela (**współczynniki regresji**)
+- $\alpha$ reprezentuje nadwyżkowy zwrot, który nie jest wyjaśniony przez model (**czynnik losowy**)
+
+</div>
+
+## Implementacja w Pythonie
+```{python}
+#| include: false
+#| echo: false
+factor_returns1 = pd.read_csv('factors_pf_returns.csv')
+factor_returns = factor_returns1[["Mkt-RF", "SMB", "HML", "RF", "pf_returns"]]
+```
+
+Wyświetlenie danych
+
+```{python}
+#| include: true
+#| echo: true
+factor_returns.head(3)
+```
+
+Macierz korelacji dla danych w tabeli
+
+```{python}
+#| include: true
+#| echo: true
+factor_returns.corr()
+```
+
+Definiujemy model regresji liniowej
+
+```{python}
+#| include: true
+#| echo: true
+model = sm.regression.linear_model.OLS(factor_returns['pf_returns'], factor_returns[['Mkt-RF','SMB', 'HML']]).fit()
+```
+
+Podsumowanie modelu
+
+```{python}
+#| include: true
+#| echo: true
+model.summary()
+```
+
+```{python}
+#| include: true
+#| echo: true
+b1, b2, b3 = model.params
+
+print ('Współczynniki dla poszczególnych czynników:\nMkt-Rf: %f\nSMB: %f\nHML: %f' %  (b1, b2, b3))
+```
+
+## <span style="font-size: 1em;">Narzędzia do analizy portfela inwestycyjnego</span> 
+
+<div style="font-size: 0.7em;">
+
+- **Backtesting** - testowanie modelu na danych historycznych
+- **Performance attrubution** - analiza składowych wyników inwestycyjnych
+- **PyFolio** - darmowe narzędzie do przeprowadzania kompleksowych analiz portfela
+
+</div>
+
+![](images/pyfolio.png){fig-align="center" width="75%"}
+

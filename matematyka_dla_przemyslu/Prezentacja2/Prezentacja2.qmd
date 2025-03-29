@@ -1,0 +1,747 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+format:
+  revealjs:
+    scrollable: true
+    transition: slide
+    theme: serif
+    self-contained: true
+    header-includes:
+      - |
+        <style>
+          .justified-text {
+            text-align: justify;
+          }
+          .reveal section {
+              padding-right: 30px; /* Dodaj margines po prawej stronie */
+            }
+        </style>
+title-slide-attributes:
+    data-background-image: "img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+# Zwrot i ryzyko {.smaller}
+
+::: columns
+Najważniejsze miary zwrotów i ryzyka - metody pomiaru i przykłady.\
+
+![](images/clipboard-2766916212.png){fig-align="center" width="70%"}
+:::
+
+```{r}
+#| include: false 
+#| echo: false 
+library(reticulate)
+use_virtualenv("my-python", required = TRUE)
+```
+
+```{r}
+#| include: false 
+#| #| echo: false 
+#py_install("seaborn", envname = "my-python") 
+#seaborn <- import("matplotlib") 
+#py_install("jupyter", envname = "my-python")
+```
+
+```{python}
+import numpy as np # Load numpy  package 
+import pandas as pd # Load pandas package  
+import statsmodels.api as sm
+```
+
+## Wariancja portfela
+
+::: justified-text
+$$
+\scriptsize 
+\sigma^2_{pf} = \begin{bmatrix} w_1 & w_2 & \ldots & w_n \end{bmatrix}\begin{bmatrix}\sigma_1^2 & \sigma_{1,2} & \ldots & \sigma_{1,n} \\\sigma_{2,1} & \sigma_2^2 & \ldots & \sigma_{2,n} \\\vdots & \vdots & \ddots & \vdots \\\sigma_{n,1} & \sigma_{n,2} & \ldots & \sigma_n^2 \\\end{bmatrix}\begin{bmatrix}w_1 \\w_2 \\\vdots \\w_n \\\end{bmatrix}
+$$ $$
+\small{
+\sigma^2_{pf} - \text{wariancja portfela} \\
+w_1,\ w_2,\ \ldots,\ w_n - \text{wagi aktywów} \\
+\sigma^2_i - \text{wariancja aktywa } i \\
+\sigma_{i, j} - \text{kowariancja aktywów } i \text{ i } j}
+$$
+:::
+
+------------------------------------------------------------------------
+
+```{python}
+#| fig-align: "center"
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+# Lista plików do wczytania
+files = ['nvda.us.txt', 'intc.us.txt', 'msft.us.txt', 'googl.us.txt']  # Zmień nazwy plików, jeśli są inne
+labels = ['NVIDIA (NVDA)', 'Intel (INTC)', 'Microsoft (MSFT)', 'Google (GOOGL)']
+
+# Tworzenie figury i wykresów 2x2
+fig, axes = plt.subplots(2, 2, figsize=(12, 10), facecolor="#F0F1EB")  # Układ 2x2
+
+# Iteracja po plikach i tworzenie wykresów
+for i, file in enumerate(files):
+    # Wczytanie danych
+    df = pd.read_csv(file)
+    
+    # Konwersja kolumny 'Date' na format daty
+    df['Date'] = pd.to_datetime(df['Date'])
+    
+    # Filtrowanie danych od 1 stycznia 2006 do 31 grudnia 2015
+    start_date = "2006-01-01"
+    end_date = "2015-12-31"
+    filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+    
+    # Wyciągnięcie odpowiednich danych
+    ax = axes[i // 2, i % 2]  # Określenie pozycji wykresu w układzie 2x2
+    
+    # Tworzenie wykresu
+    ax.plot(filtered_df['Date'], filtered_df['Close'], label=labels[i], color='blue')
+    
+    # Dodanie tytułu, etykiet osi
+    ax.set_title(labels[i])
+    ax.set_xlabel('Data')
+    ax.set_ylabel('Cena zamknięcia')
+    
+    # Ustawienie dat na osi X co 2 lata, manualnie
+    date_ticks = pd.date_range('2006-01-01', '2016-01-01', freq='2Y')
+    ax.set_xticks(date_ticks)
+    ax.set_xticklabels([date.strftime('%Y-%m-%d') for date in date_ticks], rotation=45)
+    
+    ax.grid(True)
+    ax.legend()
+
+# Dostosowanie układu
+plt.tight_layout()
+
+# Wyświetlenie wykresów
+plt.show()
+```
+
+------------------------------------------------------------------------
+
+```{python}
+# Lista plików i etykiet
+files = ['nvda.us.txt', 'intc.us.txt', 'msft.us.txt', 'googl.us.txt']
+labels = ['NVDA', 'INTC', 'MSFT', 'GOOGL']
+
+# Tworzenie pustego DataFrame
+data = pd.DataFrame()
+
+# Iteracja po plikach i ładowanie danych
+for file, label in zip(files, labels):
+    df = pd.read_csv(file, usecols=['Date', 'Close'])  # Wczytanie tylko daty i ceny zamknięcia
+    df['Date'] = pd.to_datetime(df['Date']) # Konwersja daty
+    df.set_index('Date', inplace=True)  # Ustawienie daty jako indeksu
+    data[label] = df['Close']  # Dodanie kolumny z cenami zamknięcia
+
+# Filtrowanie zakresu lat 2006-2015
+data = data.loc['2006-01-01':'2015-12-31']
+# Wyznaczenie zwrotów
+returns = data.pct_change()
+# Pominięcie pierwszego wiersza (bo NaN)
+returns = returns.iloc[1:]
+
+# Pobranie 3 pierwszych i 3 ostatnich wierszy
+first_rows = returns.iloc[1:4]  # Wiersze 2, 3 i 4
+last_rows = returns.iloc[-3:]   # Ostatnie 3 wiersze
+
+# Wyświetlenie danych z przerwą
+print("Stopy zwrotu:\n")
+print(first_rows)
+print("...")
+print(last_rows)
+
+```
+
+```{python}
+#| fig-align: "right"
+# Filtrowanie danych tylko dla roku 2015
+returns_q4_2015 = returns.loc['2015-10-01':'2015-12-31']
+
+# Tworzenie wykresu stóp zwrotu dla 2015
+plt.figure(figsize=(10, 6), facecolor='#F0F1EB')
+
+# Wykres stóp zwrotu dla każdej firmy w 2015 roku
+colors = ['blue', 'green', 'red', 'orange']  # Definiowanie kolorów
+for i, label in enumerate(labels):
+    plt.plot(returns_q4_2015.index, returns_q4_2015[label], label=label, color=colors[i])
+
+# Dodanie tytułów i etykiet
+plt.title('Stopy zwrotu dla firm w ostatnim kwartale 2015')
+plt.xlabel('Data')
+plt.ylabel('Stopa zwrotu')
+plt.legend()
+
+# Wyświetlenie wykresu
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+```
+
+------------------------------------------------------------------------
+
+```{python}
+# Obliczenie macierzy kowariancji
+cov_matrix = (returns.cov())*250
+# Wyświetlenie wyniku
+print("Macierz kowariancji:")
+styled_cov = cov_matrix.style.set_table_styles([
+    {'selector': 'table', 'props': [('width', '100%')]},
+    {'selector': 'th, td', 'props': [('font-size', '32px')]}  # Zmniejszenie czcionki
+])
+
+# Wyświetlenie tabeli w stylu (tylko w Jupyter Notebook)
+styled_cov
+```
+
+```{python}
+weights = np.array([0.25, 0.25, 0.25, 0.25])
+var_pf = np.dot(weights.T, np.dot(cov_matrix, weights))
+print(f"\nWariancja portfela: {var_pf} ≈ {var_pf:.2f} (!)")
+stddev_pf = np.sqrt(var_pf)
+print(f"Odchylenie standardowe portfela: {stddev_pf} ≈ {stddev_pf:.2f}")
+```
+
+## Stopy zwrotu {.smaller}
+
+-   Średnia stopa zwrotu
+-   Skumulowana stopa zwrotu
+-   Roczna stopa zwrotu
+-   **Zannualizowana stopa zwrotu** - roczna stopa zwrotu odpowiadająca wynikom z dowolnego okresu czasu
+
+```{python}
+# Tworzenie danych 
+dane = {     "Rok": ["Rok 1", "Rok 2", "Rok 3"],
+"Wartość portfela": [100, 200, 100],
+"Zwrot": [None, "100%", "-50%"] }  
+# Tworzenie DataFrame 
+df = pd.DataFrame(dane) 
+```
+
+### Średni zwrot vs zwrot zannualizowany
+
+```{python}
+# Wyświetlenie tabeli 
+df.style.set_table_styles(
+    [{'selector': 'table', 'props': [('width', '100%')] }]
+)
+```
+
+-   Średnia stopa zwrotu -\> (100-50)/2=25 \[%\]
+-   Rzeczywista roczna stopa zwrotu (annualized return) -\> 0 \[%\]
+
+Jak porównywać ze sobą portfele z różnymi okresami inwestycji? Co z kapitalizacją?
+
+## Annualizacja
+
+:::: justified-text
+Annualizacja oznacza przekształcenie danych krótkoterminowych w dane całoroczne. Jest to swego rodzaju prognoza, bazująca na ekstrapolacji wyników uzyskanych w jednym okresie. Opiera się ona na założeniu, że gdyby przez resztę roku sytuacja była taka sama jak w pierwszym kwartale, to w całym roku osiągniemy podobny wynik. Przykładowo, jeśli wzrost PKB w danym kwartale wyniósł 1% kdk, to annualizowane tempo wzrostu wyniosło 4,06%.^\[1\]^
+
+Annualizacji można dokonywać także na danych z okresów powyżej jednego roku.
+
+$$
+A=(1+T)^{1/N}-1
+$$
+
+$$
+T - \text{ skumulowana stopa zwrotu} \\
+N - \text{ liczba lat inwestycji} \\
+A - \text{ zannualizowana roczna stopa zwrotu }
+$$
+
+::: justified-text
+^\[1\]^ Artykuł dostępny na [Bankier.pl](https://www.bankier.pl).z
+:::
+::::
+
+## Zwroty skorygowane o ryzyko
+
+#### Portfel 1 -\> równoważny
+
+```{python}
+weights1 = np.array([0.25, 0.25, 0.25, 0.25])
+var_pf1 = np.dot(weights1.T, np.dot(cov_matrix, weights1))
+print(f"\nWariancja portfela 1: {var_pf1} ≈ {var_pf1:.2f} (!)")
+stddev_pf1 = np.sqrt(var_pf1)
+print(f"Odchylenie standardowe portfela 1: {stddev_pf1} ≈ {stddev_pf1:.2f}")
+
+T = 10
+# Obliczanie annualized return dla portfela równoważnego (NVDA, INTC, MSFT, GOOGL)
+initial_value_all = data.iloc[0].mean()  # Średnia wartość początkowa portfela (równoważne wagi)
+final_value_all = data.iloc[-1].mean()   # Średnia wartość końcowa portfela
+annualized_return_all = (final_value_all / initial_value_all) ** (1 / T) - 1
+print(f"Zannualizowana stopa zwrotu portfela 1: {annualized_return_all*100:.2f}%\n")
+```
+
+#### Portfel 2 -\> tylko GOOGL
+
+```{python}
+
+weights2 = np.array([0, 0, 0, 1])
+var_pf2 = np.dot(weights2.T, np.dot(cov_matrix, weights2))
+print(f"\nWariancja portfela 2: {var_pf2} ≈ {var_pf2:.2f} (!)")
+stddev_pf2 = np.sqrt(var_pf2)
+print(f"Odchylenie standardowe portfela 2: {stddev_pf2} ≈ {stddev_pf2:.2f}")
+
+# Obliczanie annualized return dla portfela tylko z akcjami GOOGLE
+initial_value_googl = data['GOOGL'].iloc[0]
+final_value_googl = data['GOOGL'].iloc[-1]
+annualized_return_googl = (final_value_googl / initial_value_googl) ** (1 / T) - 1
+print(f"Zannualizowana stopa zwrotu portfela 2: {annualized_return_googl*100:.2f}%")
+```
+
+Który z tych portfeli jest lepszy?
+
+------------------------------------------------------------------------
+
+#### Przykład:
+
+#### Wskaźnik Sharpe'a
+
+$$
+\small{
+S = (R_j-R_f)\cdot{\sigma_j}^{-1} \\
+S - \text{współczynnik Sharpe'a} \\
+R_j - \text{zannualizowana średnia stopa zwrotu portfela} \\
+R_f - \text{stopa zwrotu wolna od ryzyka} \\
+\sigma_j - \text{odchylenie standardowe portfela (zannualizowane!)}}
+$$
+
+Chodzi o to, by ocenić, jak dobrze inwestycja wynagradza inwestora za podjęte ryzyko, w porównaniu do alternatyw, które nie niosą ryzyka (czyli inwestycji wolnych od ryzyka).
+
+------------------------------------------------------------------------
+
+```{python}
+#| include: TRUE
+s1 = (annualized_return_all-0.04)/stddev_pf1
+print(f"Wskaźnik Sharpe'a portfela 1 (równoważny): {s1:.2f}")
+s2 = (annualized_return_googl-0.04)/stddev_pf2
+print(f"Wskaźnik Sharpe'a portfela 2 (tylko GOOGL): {s2:.2f}")
+```
+
+-   $S \approx 1$ oznacza, że ​​zwrot z inwestycji jest proporcjonalny do podjętego ryzyka. Współczynnik Sharpe’a mniejszy od 1 oznacza, że ​​zwrot z inwestycji jest mniejszy niż podjęte ryzyko.
+
+-   Portfele o wyższej wartości współczynnika Sharpe’a – uzyskują większe stopy zwrotu przy takim samym poziomie ryzyka.
+
+-   Ujemna wartość wskaźnika oznacza iż portfel osiągnął stopę zwrotu niższą niż stopa wolna od ryzyka.
+
+------------------------------------------------------------------------
+
+-   Wskaźnik odwołuje się do danych historycznych, a więc jego (wysoka) wartość nie gwarantuje osiągnięcia podobnego wyniku w przyszłości.
+
+**Ile lat wstecz powinniśmy patrzeć, obliczając zwroty skorygowane o ryzyko?**
+
+------------------------------------------------------------------------
+
+### **1. Analiza długoterminowa (np. 10 lat)**
+
+-   **Zalety:**
+
+    -   Uwzględnia wiele cykli rynkowych (np. okresy hossy i bessy).
+
+    -   Stabilizuje wpływ krótkoterminowych anomalii rynkowych.
+
+    -   Dobre do analizy portfeli o charakterze strategicznym, zorientowanych na długoterminowy wzrost.
+
+    **Wady**
+
+    -   Dane sprzed 10 lat mogą nie być już reprezentatywne, ponieważ rynki i gospodarka się zmieniają.
+
+    -   Historyczna stopa wolna od ryzyka i zmienność mogą być inne niż obecnie, co zniekształci wynik.
+
+### **2. Analiza krótkoterminowa (np. 1 rok)**
+
+-   **Zalety:**
+
+    -   Lepsze odwzorowanie aktualnych warunków rynkowych (np. bieżąca inflacja, stopy procentowe).
+
+    -   Bardziej użyteczne przy ocenie wyników portfela zarządzanego dynamicznie lub funduszy inwestycyjnych zmieniających strategię.
+
+    -   Przydatne do szybkiej analizy efektywności portfela w warunkach zwiększonej zmienności, jak np. po pandemii czy kryzysie finansowym.
+
+    **Wady:**
+
+    -   Może być podatne na krótkoterminowe anomalie, np. efekt pandemii COVID-19, kryzysy energetyczne.
+
+    -   Może nie odzwierciedlać pełnego ryzyka portfela w różnych cyklach rynkowych.
+
+## Nienormalne rozkłady stóp zwrotu
+
+::: columns
+![](images/clipboard-4294549467.png){fig-align="center" width="75%"}
+:::
+
+------------------------------------------------------------------------
+
+**Skośność:\
+**Miara asymetrii rozkładu stóp zwrotu portfela.
+
+-   $\textbf{S}>0$ - tendencja do uzyskiwania bardziej skrajnych dodatnich stóp zwrotu (prawoskośność).
+
+-   $\textbf{S}<0$ - większe ryzyko skrajnych strat (lewoskośność)
+
+-   $\textbf{S}=0$ - rozkład symetryczny.
+
+**Kurtoza**:\
+Miara "spiczastości" rozkładu i obecności wartości ekstremalnych (ryzyka ogonowego).
+
+-   $\textbf{K}>3$ - rozkład leptokurtyczny (większe ryzyko ekstremalnych zdarzeń).
+
+-   $\textbf{K}<0$ - rozkład platykurtyczny (mniejsze ryzyko ekstremalnych odchyleń).
+
+------------------------------------------------------------------------
+
+```{python}
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.stats import skew, kurtosis, mode
+import seaborn as sns
+
+# Obliczanie stóp zwrotu dla portfeli
+# Portfel 1: równoważne wagi (NVDA, INTC, MSFT, GOOGL)
+weights1 = np.array([0.25, 0.25, 0.25, 0.25])
+returns1_ww = data.pct_change().dropna()
+returns_pf1 = np.dot(returns1_ww, weights1)  # stopy zwrotu portfela 1
+
+# Portfel 2: tylko akcje GOOGL
+weights2 = np.array([0, 0, 0, 1])
+returns_pf2 = data['GOOGL'].pct_change().dropna()
+
+# Obliczanie skośności i kurtozy
+skośność_pf1 = skew(returns_pf1)
+kurtoza_pf1 = kurtosis(returns_pf1, fisher=True)
+
+skośność_pf2 = skew(returns_pf2)
+kurtoza_pf2 = kurtosis(returns_pf2, fisher=True)
+
+print(f"\nSkośność portfela 1: {skośność_pf1:.2f}")
+print(f"Kurtoza portfela 1: {kurtoza_pf1:.2f}")
+
+# Poprawiony sposób obliczania mody
+median_pf1 = np.median(returns_pf1)
+mean_pf1 = np.mean(returns_pf1)
+
+# Tworzenie wykresu dla portfela 1
+plt.figure(figsize=(10, 6))
+sns.histplot(returns_pf1, bins=30, kde=True, color='skyblue', stat="density", label="Portfel 1 (równoważne wagi)", alpha=0.6)
+
+# Zaznaczenie średniej, mediany i mody dla portfela 1
+plt.axvline(mean_pf1, color='blue', linestyle='dashed', linewidth=2, label=f"Średnia portfela 1: {mean_pf1:.4f}")
+plt.axvline(median_pf1, color='blue', linestyle='dotted', linewidth=2, label=f"Mediana portfela 1: {median_pf1:.4f}")
+
+# Tytuł i etykiety
+plt.title("Rozkład Stóp Zwrotu Portfela 1", fontsize=14)
+plt.xlabel("Stopa zwrotu", fontsize=12)
+plt.ylabel("Gęstość", fontsize=12)
+
+# Legenda
+plt.legend()
+
+# Pokaż wykres
+plt.show()
+
+```
+
+------------------------------------------------------------------------
+
+```{python}
+
+print(f"Skośność portfela 2: {skośność_pf2:.2f}")
+print(f"Kurtoza portfela 2: {kurtoza_pf2:.2f}")
+
+median_pf2 = np.median(returns_pf2)
+mean_pf2 = np.mean(returns_pf2)
+
+# Tworzenie wykresu dla portfela 2
+plt.figure(figsize=(10, 6))
+sns.histplot(returns_pf2, bins=30, kde=True, color='orange', stat="density", label="Portfel 2 (GOOGL)", alpha=0.6)
+
+# Zaznaczenie średniej, mediany i mody dla portfela 2
+plt.axvline(mean_pf2, color='red', linestyle='dashed', linewidth=2, label=f"Średnia portfela 2: {mean_pf2:.4f}")
+plt.axvline(median_pf2, color='red', linestyle='dotted', linewidth=2, label=f"Mediana portfela 2: {median_pf2:.4f}")
+
+# Tytuł i etykiety
+plt.title("Rozkład Stóp Zwrotu Portfela 2", fontsize=14)
+plt.xlabel("Stopa zwrotu", fontsize=12)
+plt.ylabel("Gęstość", fontsize=12)
+
+# Legenda
+plt.legend()
+
+# Pokaż wykres
+plt.show()
+
+```
+
+------------------------------------------------------------------------
+
+```{python}
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Tworzenie wykresu z nałożonymi estymatorami gęstości dla obu portfeli
+plt.figure(figsize=(10, 6))
+
+# Estymator gęstości dla portfela 1 (równoważne wagi)
+sns.kdeplot(returns_pf1, color='blue', label="Portfel 1 (równoważne wagi)", fill=True, alpha=0.5)
+
+# Estymator gęstości dla portfela 2 (GOOGL)
+sns.kdeplot(returns_pf2, color='orange', label="Portfel 2 (GOOGL)", fill=True, alpha=0.5)
+
+# Dodanie tytułu i etykiet
+plt.title("Porównanie Jądrowych Estymatorów Gęstości Portfeli", fontsize=14)
+plt.xlabel("Stopa zwrotu", fontsize=12)
+plt.ylabel("Gęstość", fontsize=12)
+
+# Legenda
+plt.legend()
+
+# Wyświetlenie wykresu
+plt.show()
+
+```
+
+## Analiza portfela względem benchmarku {.centered-vertical}
+
+![](images/graph.jpg){fig-align="center" width="75%"}
+
+## [Aktywna stopa zwrotu]{style="font-size: 1em;"}
+
+::: {style="font-size: 0.7em;"}
+-   Miara efektywności inwestycji **względem** indeksu referencyjnego
+-   Obliczana jako **różnica między stopami zwrotu rozważanej inwestycji i benchmarku**
+-   Odpowiedni dobór wag → wysoka aktywna stopa zwrotu
+-   Dla **pasywnych funduszy** inwestycyjnych i **funduszy indeksowych** (śledzących) aktywna stopa zwrotu jest interpretowana jako **błąd śledzenia**
+:::
+
+![](images/port_bench.png){fig-align="center" width="75%"}
+
+## [Aktywne wagi]{style="font-size: 1em;"}
+
+::: {style="font-size: 0.7em;"}
+Instrumenty w portfelu inwestycyjnym mogą być:
+
+-   **Przeważone** - gdy ich udział w portfelu inwestycyjnym jest **większy** niż w benchmarku
+-   **Niedoważenie** - gdy ich udział w portfelu inwestycyjnym jest **mniejszy** niż w benchmarku
+:::
+
+![](images/active_weights.png){fig-align="center" width="75%"}
+
+------------------------------------------------------------------------
+
+## Implementacja w Pythonie
+
+```{python}
+#| include: false
+#| echo: false
+portfolio_data = pd.read_csv('large_pf.csv')
+```
+
+Sprawdzenie, czy wagi sumują się do 100%
+
+```{python}
+#| include: true
+#| echo: true
+print(portfolio_data.pf_weights.sum())
+
+```
+
+Obliczanie całkowitych zwrotów dla portfela i indeksu referencyjnego
+
+```{python}
+#| include: true
+#| echo: true
+total_return_pf = (portfolio_data['pf_weights']*portfolio_data['mean_return']).sum()
+total_return_bm = (portfolio_data['bm_weights']*portfolio_data['mean_return']).sum()
+```
+
+Obliczanie aktywnego zwrotu
+
+```{python}
+#| include: true
+#| echo: true
+active_return = total_return_pf - total_return_bm
+print ("%.2f%%" % active_return)
+```
+
+Analiza ze względu na sektor
+
+```{python}
+#| include: true
+#| echo: true
+grouped_df=portfolio_data.groupby('GICS Sector').sum()
+```
+
+```{python}
+#| include: true
+#| echo: true
+
+grouped_df['active_weight']=grouped_df['pf_weights']-grouped_df['bm_weights']
+print (grouped_df['active_weight'])
+```
+
+## [Czynniki ryzyka]{style="font-size: 1em;"}
+
+::: {style="font-size: 0.7em;"}
+-   **Cechy** instrumentów finansowych zawartych w portfelu, **wpływające na zmianę jego wartości** - stratę lub zysk
+-   Dzielimy je na:
+    -   **makroekonomiczne**: stopy procentowe, kursy walut, przepisy prawne, etc.
+    -   **strategiczne**: wielkość, wartość, zmienność, dynamika, etc.
+:::
+
+![](images/factors.png){fig-align="center" width="75%"}
+
+## [Zastosowania czynników ryzyka]{style="font-size: 1em;"}
+
+![](images/applications.png){fig-align="center" width="75%"}
+
+## Implementacja w Pythonie
+
+```{python}
+#| include: false
+#| echo: false
+import matplotlib.pyplot as plt
+df = pd.read_csv('pf_factors.csv')
+```
+
+Obliczamy współczynniki korelacji między zwrotami S&P500 a czynnikami dynamiki i wartości
+
+```{python}
+#| include: true
+#| echo: true
+df['correlation_mom']=df['S&P500'].rolling(20).corr(df['WML'])
+df['correlation_value']=df['S&P500'].rolling(20).corr(df['value_factor'])
+```
+
+Generujemy wykres korelacji w czasie
+
+```{python}
+#| include: true
+#| echo: true
+plt.clf()
+plt.plot(df['correlation_mom'], label = "momentum")
+plt.plot(df['correlation_value'], label = "value")
+plt.title("Korelacja między czynnikami ryzyka a stopą zwrotu indeksu S&P500")
+plt.legend()
+plt.show()
+```
+
+Teraz sprawdźmy jak czynnik wartości wpływa na zmianę wartości portfela inwestycyjnego
+
+```{python}
+#| include: false
+#| echo: false
+factor_data = df[["WML", "value_factor", "portfolio"]]
+```
+
+```{python}
+#| include: true
+#| echo: true
+factor_data.corr()
+```
+
+```{python}
+#| include: true
+#| echo: true
+plt.clf()
+factor_data['correlation_value']=factor_data['portfolio'].rolling(5).corr(factor_data['value_factor'])
+factor_data['correlation_value'].plot()
+plt.legend()
+plt.show()
+```
+
+## [Fama French Multi Factor Model]{style="font-size: 1em;"}
+
+::: {style="font-size: 0.7em;"}
+$$
+R_{pf}=\alpha + \beta_mMKT + \beta_s SMB + \beta_h HML
+$$
+
+-   MKT (market return) to **różnica** między **stopą zwrotu rynkowego** a **stopą wolną od ryzyka** $R_m - R_f$
+-   SML (small minus big) **czynnik rozmiaru**
+-   HML (high minus low) **czynnik wartości**
+-   Współczynniki $\beta_{(.)}$ mowią nam w jakim stopniu konkretny czynnik wyjaśnia zmiany stopy zwrotu z naszego portfela (**współczynniki regresji**)
+-   $\alpha$ reprezentuje nadwyżkowy zwrot, który nie jest wyjaśniony przez model (**czynnik losowy**)
+:::
+
+## Implementacja w Pythonie
+
+```{python}
+#| include: false
+#| echo: false
+factor_returns1 = pd.read_csv('factors_pf_returns.csv')
+factor_returns = factor_returns1[["Mkt-RF", "SMB", "HML", "RF", "pf_returns"]]
+```
+
+Macierz korelacji dla danych w tabeli
+
+```{python}
+#| include: true
+#| echo: true
+factor_returns.corr()
+```
+
+Definiujemy model regresji liniowej
+
+```{python}
+#| include: true
+#| echo: true
+model = sm.regression.linear_model.OLS(factor_returns['pf_returns'], factor_returns[['Mkt-RF','SMB', 'HML']]).fit()
+```
+
+Dokonujemy predykcji
+
+```{python}
+#| include: true
+#| echo: true
+predictions = model.predict(factor_returns[['Mkt-RF','SMB', 'HML']]) 
+```
+
+Podsumowanie modelu
+
+```{python}
+#| include: true
+#| echo: true
+model.summary()
+```
+
+```{python}
+#| include: true
+#| echo: true
+b1, b2, b3 = model.params
+
+print ('Współczynniki dla poszczególnych czynników:\nMkt-Rf: %f\nSMB: %f\nHML: %f' %  (b1, b2, b3))
+```
+
+## [Narzędzia do analizy portfela inwestycyjnego]{style="font-size: 1em;"}
+
+::: {style="font-size: 0.7em;"}
+-   **Backtesting** - testowanie modelu na danych historycznych
+-   **Performance attrubution** - analiza składowych wyników inwestycyjnych
+-   **PyFolio** - darmowe narzędzie do przeprowadzania kompleksowych analiz portfela
+:::
+
+![](images/pyfolio.png){fig-align="center" width="75%"}
+
+# Źródła
+
+1.  [**Price & Volume Data for All US Stocks & ETFs**](https://www.kaggle.com/datasets/borismarjanovic/price-volume-data-for-all-us-stocks-etfs/data)\
+    Marjanovic, B. (2021). Kaggle.
+
+2.  [**Sharpe Ratio**](https://www.investopedia.com/terms/s/sharperatio.asp) (Investopedia)
+
+3.  [**Annualized Total Return**](https://www.investopedia.com/terms/a/annualized-total-return.asp) **(**Investopedia**)**
+
+4.  [**Sharpe Ratio Explained**](https://www.youtube.com/watch?v=fWnyg0UeQkg)\
+    Edspira. (2020). YouTube.
+
+5.  [**Czym jest annualizowany PKB? Tłumaczymy**](https://www.bankier.pl/wiadomosc/Czym-jest-annualizowany-PKB-Tlumaczymy-7893462.html)\
+    Bankier.pl. (2020).

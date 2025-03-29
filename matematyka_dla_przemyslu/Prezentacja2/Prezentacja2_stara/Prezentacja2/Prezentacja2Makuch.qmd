@@ -1,0 +1,154 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+format:
+  revealjs:
+    transition: slide
+    theme: serif
+    self-contained: true
+    header-includes:
+      - |
+        <style>
+          section {
+            overflow: auto; /* Dodaje przewijanie do sekcji */
+            max-height: 100vh; /* Maksymalna wysokość slajdu, reszta będzie przewijana */
+          }
+          .justified-text {
+            text-align: justify;
+          }
+          .reveal section {
+              padding-right: 30px; /* Dodaj margines po prawej stronie */
+            }
+        </style>
+title-slide-attributes:
+    data-background-image: "img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+# Zwrot i ryzyko {.smaller}
+
+::: columns
+Najważniejsze miary zwrotów i ryzyka - metody pomiaru i przykłady.\
+
+![](images/clipboard-2766916212.png){fig-align="center" width="75%"}
+:::
+
+```{r}
+#| include: false 
+#| echo: false 
+library(reticulate)
+use_virtualenv("my-python", required = TRUE)
+```
+
+```{r}
+#| include: false 
+#| #| echo: false 
+#py_install("pandas", envname = "my-python") 
+#pandas <- import("pandas") 
+#py_install("jupyter", envname = "my-python")
+```
+
+```{python}
+import numpy as np # Load numpy  package 
+import pandas as pd # Load pandas package  
+```
+
+## Wariancja portfela
+
+```{python}
+# KOD Z PRZYKŁADOWĄ RAMKĄ DANYCH Z 4 FIRMAMI, OBLICZENIEM MACIERZY KOWARIANCJI MIĘDZY NIMI ORAZ OBLICZENIE WARIANCJI PORTFELA
+```
+
+## Stopy zwrotu {.smaller}
+
+-   Średnia stopa zwrotu
+-   Skumulowana stopa zwrotu
+-   Roczna stopa zwrotu
+-   **Zannualizowana stopa zwrotu** - roczna stopa zwrotu odpowiadająca wynikom z dowolnego okresu czasu
+
+```{python}
+# Tworzenie danych 
+dane = {     "Rok": ["Rok 1", "Rok 2", "Rok 3"],
+"Wartość portfela": [100, 200, 100],
+"Zwrot": [None, "100%", "-50%"] }  
+# Tworzenie DataFrame 
+df = pd.DataFrame(dane) 
+```
+
+### Średni zwrot vs zwrot zaanualizowany
+
+```{python}
+# Wyświetlenie tabeli 
+df.style.set_table_styles(
+    [{'selector': 'table', 'props': [('width', '100%')] }]
+)
+```
+
+-   Średnia stopa zwrotu -\> (100-50)/2=25 \[%\]
+-   Rzeczywista roczna stopa zwrotu (annualized return) -\> 0 \[%\]
+
+Jak porównywać ze sobą portfele z różnymi okresami inwestycji? Co z kapitalizacją?
+
+## Annualizacja
+
+::: justified-text
+Annualizacja oznacza przekształcenie danych krótkoterminowych w dane całoroczne. Jest to swego rodzaju prognoza, bazująca na ekstrapolacji wyników uzyskanych w jednym okresie. Opiera się ona na założeniu, że gdyby przez resztę roku sytuacja była taka sama jak w pierwszym kwartale, to w całym roku osiągniemy podobny wynik. Przykładowo, jeśli wzrost PKB w danym kwartale wyniósł 1% kdk, to annualizowane tempo wzrostu wyniosło 4,06%.
+
+Annualizacji można dokonywać także na danych z okresów powyżej jednego roku.
+
+$$
+A=(1+T)^{1/N}-1
+$$
+:::
+
+## Zwroty skorygowane o ryzyko 
+
+DWA PORTFELE DO WYBORU - JEDEN WIĘKSZY ZYSK I RYZYKO, DRUGI OBA MNIEJSZE
+
+DEFINICJA ZWROTU SKORYGOWANEGO O RYZYKO
+
+## Wskaźnik kształtu
+
+DEFINICJA
+
+### Zmienność roczna
+
+DEFINICJA
+
+### Przykład
+
+```{python}
+# przykład wskaźnika kształtu
+```
+
+## Nienormalne rozkłady stóp zwrotu
+
+PRZYKŁAD 2 STÓP ZWROTU O TEJ SAMEJ WARIANCJI
+
+### Skośność
+
+DEFINICJA, WSPÓŁCZYNNIK PEARSONA
+
+### Kurtoza
+
+DEFINICJA, INTUICJA
+
+## Alternatywne sposoby pomiaru ryzyka
+
+### Wskaźnik Sortino
+
+Definicja, intuicja
+
+```{python}
+Długi wskaźnik
+```
+
+### Maksimum draw-down
+
+Definicja, intuicja, obrazek, kilka przykładów historycznych
+
+Masimum draw-down w pythonie
+
+## Jak starczy czasu: obliczenie wszystkich wskazanych miar dla wybranych danych rzeczywistych + wnioski + porównanie z przyszłością
