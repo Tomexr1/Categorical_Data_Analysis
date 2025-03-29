@@ -1,0 +1,61 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+format:
+  revealjs:
+    scrollable: true
+    transition: slide
+    theme: serif
+    self-contained: true
+    header-includes:
+      - |
+        <style>
+          .justified-text {
+            text-align: justify;
+          }
+          .reveal section {
+              padding-right: 30px; /* Dodaj margines po prawej stronie */
+            }
+        </style>
+title-slide-attributes:
+    data-background-image: "img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+## Quarto
+```{r setup}
+library(reticulate)
+use_virtualenv("venv", required = TRUE)
+```
+```{python}
+import numpy as np # Load numpy  package
+import matplotlib.pyplot as plt # Load matplotlib package
+import pandas as pd
+import pyfolio as pf
+# import pandas as pd # Load pandas package
+# import statsmodels.api as sm
+
+# Load data
+data = pd.read_csv('pf_factors.csv', index_col=0)
+data.index = pd.to_datetime(data.index)
+data = data['S&P500']
+data = pd.Series(data)
+data
+# pf.create_returns_tear_sheet(data)
+```
+## Bullets
+
+When you click the **Render** button a document will be generated that includes:
+
+-   Content authored with markdown
+-   Output from executable code
+
+## Code
+
+When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
