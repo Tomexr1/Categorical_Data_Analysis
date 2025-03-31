@@ -18,44 +18,194 @@ format:
             }
         </style>
 title-slide-attributes:
-    data-background-image: "img_prezentacja2.jpg"
+    data-background-image: "images/img_prezentacja2.jpg"
     data-background-size: cover
     data-background-opacity: "0.65"
     data-background-color: "#000000"
+jupyter: python3
 ---
-
-## Quarto
 ```{r setup}
+#| echo: false
+#| include: false
 library(reticulate)
-use_virtualenv("venv", required = TRUE)
+use_condaenv("/Users/tomasz/opt/anaconda3/bin/python", required = TRUE)
 ```
 ```{python}
 import numpy as np # Load numpy  package
 import matplotlib.pyplot as plt # Load matplotlib package
 import pandas as pd
 import pyfolio as pf
-# import pandas as pd # Load pandas package
-# import statsmodels.api as sm
+from IPython.display import display
+```
 
-# Load data
-data = pd.read_csv('pf_factors.csv', index_col=0)
-data.index = pd.to_datetime(data.index)
-data = data['S&P500']
-data = pd.Series(data)
+## Alternatywne miary ryzyka {.smaller}
+![](images/wykres_ryzyka){fig-align="center" width="75%"}
+
+-   Miara ryzyka powinna się skupiać na ujemnych zwrotach, np. największym spadku (ang. Maximum Drawdown) lub współczynniku Sortino.
+
+## Alternatywne miary ryzyka {.smaller}
+::::: columns
+::: {.column style="padding-top: 10px;"}
+#### Współczynnik Sharpe'a
+$$
+\small{
+Sharpe = (R_p-R_f)\cdot{\sigma_j}^{-1}, \\
+Sharpe - \text{współczynnik Sharpe'a}, \\
+R_p - \text{zannualizowana średnia stopa zwrotu}, \\
+R_f - \text{stopa zwrotu wolna od ryzyka}, \\
+\sigma_j - \text{odchylenie standardowe portfela}.}
+$$
+:::
+::: column
+#### Współczynnik Sortino
+$$
+\small{
+Sortino = (R_j-R_f)\cdot{\sigma_d}^{-1}, \\
+Sortino - \text{współczynnik Sortino}, \\
+R_j - \text{zannualizowana średnia stopa zwrotu}, \\
+R_f - \text{stopa zwrotu wolna od ryzyka}, \\
+\sigma_d = \sqrt{\frac{1}{n}\sum_{i=1}^{n} \min(0, R_i - R_f)^2} - \\
+-\text{ odchylenie standardowe ujemnych zwrotów}.
+}
+$$
+:::
+:::::
+## Współczynnik Sortino {.smaller}
+```{python}
+files = ['googl.us.txt']
+labels = ['GOOGL']
+
+# Tworzenie pustego DataFrame
+data = pd.DataFrame()
+
+# Iteracja po plikach i ładowanie danych
+for file, label in zip(files, labels):
+    df = pd.read_csv('data/'+file, usecols=['Date', 'Close'])  # Wczytanie tylko daty i ceny zamknięcia
+    df['Date'] = pd.to_datetime(df['Date']) # Konwersja daty
+    df.set_index('Date', inplace=True)  # Ustawienie daty jako indeksu
+    data[label] = df['Close']  # Dodanie kolumny z cenami zamknięcia
+
+# Filtrowanie zakresu lat 2006-2015
+data = data.loc['2006-01-01':'2015-12-31']
+```
+
+::::: columns
+::: {.column style="padding-top: 10px;"}
+```{python}
 data
-# pf.create_returns_tear_sheet(data)
 ```
-## Bullets
+:::
 
-When you click the **Render** button a document will be generated that includes:
-
--   Content authored with markdown
--   Output from executable code
-
-## Code
-
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r}
-1 + 1
+::: column
+```{python}
+data.plot()
 ```
+:::
+:::::
+
+**Wskaźnik Sortino dla akcji Google**
+```{python}
+#| echo: true
+#| include: true
+rfr = 0.04
+target_return = 0
+
+returns = data.pct_change()
+negative_returns = returns.loc[returns['GOOGL'] < target_return]
+expected_return = returns.mean()
+annualized_return = (expected_return+1)**252 - 1
+down_std = negative_returns.std()
+
+sortino_ratio = (annualized_return - rfr) / (down_std*np.sqrt(252))
+```
+Sortino dla akcji Google wynosi ok. `{python} float(np.round(sortino_ratio,3))`.
+```{python}
+sharpe_ratio = (annualized_return - rfr) / (returns.std()*np.sqrt(252))
+```
+Sharpe dla akcji Google wynosi ok. `{python} float(np.round(sharpe_ratio,3))`.
+
+## Alternatywne miary ryzyka {.smaller}
+#### Największy spadek (ang. Maximum Drawdown)
+![](images/maximum_drawdown){fig-align="center" width="75%"}
+
+-   Największa procentowa strata od szczytu do dna.
+
+-   Zależy od wybranego okna czasowego.
+
+## Największy spadek (ang. Maximum Drawdown) {.smaller}
+```{python}
+#| echo: true
+#| include: true
+# Maksymalne spadki
+roll_max = data.rolling(center=False, min_periods=1, window=252).max()
+
+# Dzienny spadek w stosunku do maksimum
+daily_draw_down = data/roll_max - 1.0
+
+# Maksymalny dzienny spadek
+max_daily_draw_down = daily_draw_down.rolling(center=False, min_periods=1, window=252).min()
+
+# Wykres
+plt.figure(figsize=(15,8))
+plt.plot(data.index, daily_draw_down, label='Dzienne spadki')
+plt.plot(data.index, max_daily_draw_down, label='Maksymalne spadki w okresie 252 dni')
+plt.legend()
+plt.show()
+```
+
+
+
+
+
+## Pyfolio
+![](images/pyfolio.png){fig-align="center" width="75%"}
+
+
+
+```{python}
+sp500 = pd.read_csv('data/sp500.csv', index_col=0)
+sp500.index = pd.to_datetime(sp500.index, format="%d/%m/%Y")
+sp500 = sp500.pct_change().dropna().iloc[:, 0]
+sp500.index = pd.to_datetime(sp500.index, format="%d/%m/%Y")
+
+# pf.show_perf_stats(sp500)
+```
+## Pyfolio
+#### Dane
+```{python}
+#| echo: true
+#| include: true
+positions = pd.read_csv('data/test_pos.csv', index_col=0)
+positions.index = pd.to_datetime(positions.index)
+display(positions)
+```
+
+## Pyfolio
+#### Tear Sheet
+```{python}
+#| echo: true
+#| include: true
+returns = positions.sum(axis=1).pct_change().dropna()
+
+# pf.create_returns_tear_sheet(returns)
+pf.create_full_tear_sheet(returns, )
+```
+
+## Pyfolio
+#### Position Tear Sheet
+```{python}
+#| echo: true
+#| include: true
+# Mapowanie sektorów
+sect_map = {'COST': 'Consumer Goods',
+            'INTC': 'Technology', 
+            'CERN': 'Healthcare', 
+            'GPS': 'Technology',
+            'MMM': 'Construction', 
+            'DELL': 'Technology', 
+            'AMD': 'Technology'}
+
+pf.create_position_tear_sheet(returns,positions, sector_mappings=sect_map)
+```
+
+
