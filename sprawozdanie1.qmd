@@ -658,9 +658,11 @@ Funkcja *sprawdzaj_CI_exact* dla danej metody zwraca listę zawierającą trzy e
 
 -   *valid* -- zmienna określająca, czy prawdopodobieństwo pokrycia jest równe co najmniej 0.95,
 
--   *length* -- średnią długość przedziału ufności,
+-   *length* -- oczekiwaną długość przedziału ufności,
 
 -   *coverage* -- prawdopodobieństwo pokrycia.
+
+Funkcja liczy wartość oczekiwaną długości przedziału ufności sumując długości przedziałów ufności dla wszystkich możliwych wartości parametru *p* ważonych prawdopodobieństwem wystąpienia danej wartości dla ustalonych *n* i *p*. Następnie oblicza prawdopodbieństwo pokrycia, sumując prawdopodobieństwa, dla których dany przedział ufności zawiera daną wartość *p*.
 
 ```{r}
 sprawdzaj_CI_exact <- function(n, p, method, alpha=0.05){
@@ -683,7 +685,7 @@ for (n in ns){
 
 Przy interpretacji wyników dla danej metody interesować nas będzie zarówno średnia długość przedziału, jak i prawdopodobieństwo pokrycia dla parametru *p*. Poniżej zaprezentowano trzy wykresy: pierwszy z nich przedstawia średnią długość przedziału w zależności od wartości *p*, drugi wykres pokazuje poziom pokrycia w zależności od *p*. Na końcu natomiast znajduje się tzw. "studnia" -- dla ustalonej paru parametrów *n* i *p* wskazuje ona metodę, dla której średnią długość jest najmniejsza oraz prawdopodopodobieństwo pokrycia jest równe co najmniej zadanemu poziomowi ufności.
 
-Przy wykorzystaniu funkcji *sprawdzaj_CI_exact*, naniesiono na wykres średnią długość przedziału ufności w zależności od *p* dla wszytskich badanych metod oraz wartości *n*.
+Przy wykorzystaniu funkcji *sprawdzaj_CI_exact*, naniesiono na wykres średnią długość przedziału ufności w zależności od *p* dla wszystkich badanych metod oraz wartości *n*.
 
 ```{r}
 results |> 
