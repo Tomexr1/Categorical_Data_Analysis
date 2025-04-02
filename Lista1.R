@@ -233,6 +233,43 @@ library(stats)
 # binom.test - test dokładny https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/binom.test
 # prop.test - test z normalnym przybliżeniem https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/prop.test
 
+# zad 11
+conf.level <- 0.95
+# a)
+exact_results <- binom.test(length(ankieta$PŁEĆ[ankieta$PŁEĆ == 'K']), nrow(ankieta), p=0.5, conf.level=conf.level)
+asymptotic_results <- prop.test(length(ankieta$PŁEĆ[ankieta$PŁEĆ == 'K']), nrow(ankieta), p=0.5, conf.level=conf.level)
+exact_results
+asymptotic_results
+# b)
+exact_results <- binom.test(length(ankieta$PYT_2[ankieta$PYT_2 %in% c(1, 2)]), nrow(ankieta), p=0.7, conf.level=conf.level, alternative='less')
+asymptotic_results <- prop.test(length(ankieta$PYT_2[ankieta$PYT_2 %in% c(1, 2)]), nrow(ankieta), p=0.7, conf.level=conf.level, alternative='less')
+exact_results
+asymptotic_results
+# c)
+# Prawdopodobien ́stwo, z ̇e kobieta pracuje na stanowisku kierowniczym jest równe prawdopodobien ́stwu, z ̇e me ̨z ̇czyzna pracuje na stanowisku kierowniczym.
+ankieta$CZY_KIER[ankieta$CZY_KIER=='Tak', ankieta$PŁEĆ[ankieta$PŁEĆ=='K']]
+x1 <- subset(ankieta, CZY_KIER == 'Tak' & PŁEĆ == 'K') |> nrow()
+x2 <- subset(ankieta, CZY_KIER == 'Tak' & PŁEĆ == 'M') |> nrow()
+n1 <- subset(ankieta, PŁEĆ == 'K' ) |> nrow()
+n2 <- subset(ankieta, PŁEĆ == 'M' ) |> nrow()
+results <- prop.test(c(x1, x2), c(n1, n2), conf.level=conf.level, alternative='two.sided')
+results
+# d)
+# Prawdopodobien ́stwo, z ̇e kobieta uwaz ̇a szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie jest równe prawdopodobien ́stwu, z ̇e me ̨z ̇czyzna uwaz ̇a szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie.
+x1 <- subset(ankieta, PYT_1 %in% c(1, 2) & PŁEĆ == 'K') |> nrow()
+x2 <- subset(ankieta, PYT_1 %in% c(1, 2) & PŁEĆ == 'M') |> nrow()
+n1 <- subset(ankieta, PŁEĆ == 'K') |> nrow()
+n2 <- subset(ankieta, PŁEĆ == 'M') |> nrow()
+results <- prop.test(c(x1, x2), c(n1, n2), conf.level=conf.level, alternative='two.sided')
+results
+# e) Prawdopodobien ́stwo, z ̇e kobieta pracuje w dziale zasobów ludzkich jest wie ̨ksze lub równe prawdopodobien ́stwu, z ̇e me ̨z ̇czyzna pracuje w dziale zasobów ludzkich.
+x1 <- subset(ankieta, DZIAŁ == 'HR' & PŁEĆ == 'K') |> nrow()
+x2 <- subset(ankieta, DZIAŁ == 'HR' & PŁEĆ == 'M') |> nrow()
+n <- subset(ankieta, DZIAŁ == 'HR') |> nrow()
+results <- prop.test(c(x1, x2), c(n, n), conf.level=conf.level, alternative='less')
+results
+
+
 # zad 12
 p0 <- 0.9
 alpha <- 0.05
@@ -316,6 +353,10 @@ plot_power <- function(n, N = 1000, ps = seq(0, 1, 0.01), title="Moc testu dla r
 }
 
 n <- 100
+plot_power(n, N = 1000, title = 'Moc testu dla różnych wartości p - krok 0.01', diff=TRUE) /
+  plot_power(n, N = 1000, ps = seq(0.85, 0.95, 0.001), title = 'Moc testu dla różnych wartości p - krok 0.001') + plot_layout(guides = 'collect')
+
+n <- 50
 plot_power(n, N = 1000, title = 'Moc testu dla różnych wartości p - krok 0.01', diff=TRUE) /
   plot_power(n, N = 1000, ps = seq(0.85, 0.95, 0.001), title = 'Moc testu dla różnych wartości p - krok 0.001') + plot_layout(guides = 'collect')
 
