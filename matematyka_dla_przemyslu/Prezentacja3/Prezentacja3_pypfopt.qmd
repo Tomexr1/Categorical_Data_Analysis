@@ -1,0 +1,116 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+execute: 
+  echo: true
+format:
+  revealjs:
+    scrollable: true
+    transition: slide
+    theme: serif
+    self-contained: true
+    header-includes:
+      - |
+        <style>
+          .justified-text {
+            text-align: justify;
+          }
+          .reveal section {
+              padding-right: 30px; /* Dodaj margines po prawej stronie */
+            }
+        </style>
+title-slide-attributes:
+    data-background-image: "images/img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+```{r setup}
+#| echo: false
+#| warning: false
+#| error: false
+#| output: false
+library(reticulate)
+options(reticulate.python = "/opt/homebrew/bin/python3")
+```
+
+## Teoria portfelowa
+
+## Biblioteka PyortfolioOpt
+```{python}
+#| echo: false
+import pandas as pd
+```
+
+Importujemy potrzebne funkcje
+
+```{python}
+#| include: true
+from pypfopt import expected_returns
+from pypfopt import risk_models
+from pypfopt.efficient_frontier import EfficientFrontier
+```
+
+```{python}
+#| echo: false
+stock_prices = pd.read_csv("stock_prices.csv", parse_dates=True, index_col="date")
+```
+
+Liczymy średnie zwroty dla danych...
+
+```{python}
+#| include: true
+mu = expected_returns.mean_historical_return(stock_prices)
+```
+
+Pierwsze 5 wyników dla średnich zwrotów
+
+```{python}
+#| echo: false
+print(mu[:5])
+```
+
+Liczymy macierz kowariancji zwrotów dla danych...
+
+```{python}
+#| include: true
+Sigma = risk_models.sample_cov(stock_prices)
+```
+
+Pierwsze 5 wyników dla macierzy kowariancji
+
+```{python}
+#| echo: false
+print(Sigma.iloc[:5, :5])
+```
+
+Liczymy portfel efektywny...
+
+```{python}
+#| include: true
+ef = EfficientFrontier(mu, Sigma)
+```
+
+## Opcje 
+```{python}
+#| include: true
+weights = ef.efficient_return(0.2)
+print(weights)
+
+ef.portfolio_performance(verbose=True)
+```
+## Bullets
+
+When you click the **Render** button a document will be generated that includes:
+
+-   Content authored with markdown
+-   Output from executable code
+
+## Code
+
+When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
