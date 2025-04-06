@@ -37,10 +37,58 @@ options(reticulate.python = "/opt/homebrew/bin/python3")
 
 ## Teoria portfelowa
 
+...po angielsku **modern portfolio theory** lub **mean--variance analysis**.
+
+![](images/harry_markowitz.png){fig-align="center" width="635"}
+
+## Główna idea – Efektywna granica
+
+...czyli **Efficient frontier**.
+
+To zbiór porfeli, dla których nie istnieje inny portfel o wyższym oczekiwanym zwrocie przy tym samym odchyleniu standardowym zwrotu (ryzyku).
+
+Szukamy takich wag, które pozwolą nam zminimalizować wariancję
+
+$$
+\min_{\mathbf{w}} = \mathbf{w}^T\Sigma\mathbf{w}.
+$$
+
+Dla dobranych wag wartość oczekiwana zwrotu powinna odpowiadać ustalonemu poziomowi
+
+$$
+\mathbf{w}^T\mathbf{\mu} = \mu_p.
+$$
+
+Wagi muszą sumować się do 1
+
+$$
+\mathbf{w}^T\mathbf{1}=1.
+$$
+
+## Graficzna reprezentacja
+
+![](images/the-efficient-frontier_plot.jpeg){fig-align="center" width="523"}
+
+Źródło: <https://inyova.ch/en/expertise/efficient-frontier-investment-theory/>
+
 ## Biblioteka PyortfolioOpt
+
 ```{python}
 #| echo: false
 import pandas as pd
+```
+
+```{python}
+#| echo: false
+stock_prices = pd.read_csv("stock_prices.csv", parse_dates=True, index_col="date")
+stock_prices.dropna(how='any', axis=1, inplace=True)
+```
+
+Jak wyglądają nasze dane?
+
+```{python}
+#| echo: false
+stock_prices.head(3)
 ```
 
 Importujemy potrzebne funkcje
@@ -49,12 +97,6 @@ Importujemy potrzebne funkcje
 #| include: true
 from pypfopt import expected_returns
 from pypfopt import risk_models
-from pypfopt.efficient_frontier import EfficientFrontier
-```
-
-```{python}
-#| echo: false
-stock_prices = pd.read_csv("stock_prices.csv", parse_dates=True, index_col="date")
 ```
 
 Liczymy średnie zwroty dla danych...
@@ -85,32 +127,148 @@ Pierwsze 5 wyników dla macierzy kowariancji
 print(Sigma.iloc[:5, :5])
 ```
 
-Liczymy portfel efektywny...
+## Wybór portfela
 
 ```{python}
 #| include: true
-ef = EfficientFrontier(mu, Sigma)
+from pypfopt.efficient_frontier import EfficientFrontier
 ```
 
-## Opcje 
+Liczymy Efficient frontier...
+
 ```{python}
 #| include: true
-weights = ef.efficient_return(0.2)
-print(weights)
-
-ef.portfolio_performance(verbose=True)
+ef_return = EfficientFrontier(mu, Sigma)
+ef_sharpe = EfficientFrontier(mu, Sigma)
+ef_vol = EfficientFrontier(mu, Sigma)
 ```
-## Bullets
 
-When you click the **Render** button a document will be generated that includes:
+<br>
 
--   Content authored with markdown
--   Output from executable code
+Wybieramy porfel o rocznej stopie zwrotu 20%...
 
-## Code
-
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r}
-1 + 1
+```{python}
+#| output: false
+ef_return.efficient_return(0.2)
 ```
+
+Wagi
+
+```{python}
+#| output: false
+ef_return.clean_weights()
+```
+
+```{python}
+#| echo: false
+weights = ef_return.clean_weights()
+for asset, weight in weights.items():
+    print(f"{asset}: {weight:.5f}")
+```
+
+Statystyki
+
+```{python}
+#| include: true
+ef_return.portfolio_performance(verbose=True)
+```
+
+<br>
+
+Wybieramy porfel o najwyższym wskaźniku Sharpe'a...
+
+```{python}
+#| output: false
+ef_sharpe.max_sharpe()
+```
+
+Wagi
+
+```{python}
+#| echo: false
+weights = ef_sharpe.clean_weights()
+for asset, weight in weights.items():
+    print(f"{asset}: {weight:.5f}")
+```
+
+Statystyki
+
+```{python}
+#| echo: false
+ef_sharpe.portfolio_performance(verbose=True)
+```
+
+<br>
+
+Wybieramy porfel o najmniejszej zmienności (odchyleniu standardowym zwrotów)...
+
+```{python}
+#| output: false
+ef_vol.min_volatility()
+```
+
+Wagi
+
+```{python}
+#| echo: false
+weights = ef_vol.clean_weights()
+for asset, weight in weights.items():
+    print(f"{asset}: {weight:.5f}")
+```
+
+Statystyki
+
+```{python}
+#| echo: false
+ef_vol.portfolio_performance(verbose=True)
+```
+
+## Alternatywne sposoby obliczania średniej i wariancji
+
+#### Zwroty i ryzyko ważone wykładniczo
+
+Nadajemy większe wagi nowym danym.
+
+```{python}
+#| include: true
+#| output: false
+mu_exp = expected_returns.ema_historical_return(stock_prices, span=180, 
+  frequency=252)
+Sigma_exp = risk_models.exp_cov(stock_prices, span=180, frequency=252)
+ef_exp = EfficientFrontier(mu_exp, Sigma_exp)
+ef_exp.max_sharpe()
+```
+
+Statystyki
+
+```{python}
+#| echo: false
+ef_exp.portfolio_performance(verbose=True)
+```
+
+<br>
+
+#### Semikowariancja
+
+... czyli wariancja ze zwrotów poniżej ustalonego benchamrku.
+
+```{python}
+#| include: true
+semi_Sigma = risk_models.semicovariance(stock_prices, 
+  benchmark=0, frequency=252)
+```
+
+Pierwsze 5 wyników dla macierzy semikowariancji
+
+```{python}
+#| echo: false
+print(semi_Sigma.iloc[:5, :5])
+```
+
+## Źródła
+
+-   <https://pyportfolioopt.readthedocs.io/en/latest/index.html>
+
+-   Markowitz, H.M. (March 1952). "Portfolio Selection". *The Journal of Finance*. **7** (1): 77-91. [doi](https://en.wikipedia.org/wiki/Doi_(identifier) "Doi (identifier)"):[10.2307/2975974](https://doi.org/10.2307%2F2975974). [JSTOR](https://en.wikipedia.org/wiki/JSTOR_(identifier) "JSTOR (identifier)") [2975974](https://www.jstor.org/stable/2975974).
+
+-   <https://gregorygundersen.com/blog/2022/01/09/geometry-efficient-frontier/>
