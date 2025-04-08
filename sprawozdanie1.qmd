@@ -43,6 +43,7 @@ library(ggplot2)
 library(likert)
 library(qqplotr)
 library(DescTools)
+library(stats)
 knitr::opts_chunk$set(dev='cairo_pdf')
 ```
 
@@ -767,11 +768,310 @@ Przedział otrzymany za pomocą metody Walda był najlepszy tylko dla dużej pr�
 
 ## Zadanie 10
 
+Zapoznano się z funkcjami służącymi do wykonania testu dokładnego oraz asympotycznego weryfikujcego hipotezę zerową dotyczcą prawodopodobiestwa sukcesu z rozkładu dwumianowego.
+
+Do wykonania testu dokładnego weryfikujcego hipotezę zerową dotyczcą prawodopodobiestwa sukcesu z rozkładu dwumianowego można posłużyć się funkcją *binom.test* z biblioteki *stats*. Za argumenty przyjmuje ona:
+
+-   *x* -- liczba sukcesów lub wektor dwuelementowy zawierający kolejno liczbę sukcesów i porażek;
+
+-   *n* -- liczba prób, ignorowane jeśli *x* jest wektorem o długości 2;
+
+-   *p* -- zakładane prawdopodobieństwo sukcesu;
+
+-   *alternative* -- określa hipotezę alternatywną, dostępne opcje to: "two.sided", "greater", "less";
+
+-   *conf.level* -- poziom ufności dla zwróconego przedziału ufności.
+
+Funkcja zwraca *p--value*, pozwalającą ocenić, czy są podstawy do odrzucenia hipotezy zerowej. W wyniku znajdziemy także estymowane prawdopodobieństwo sukcesu oraz przedział ufności dla *p* na poziomie ufności *conf.level*.
+
+Do wykonania testu asymptotycznego weryfikujcego hipotezę zerową dotyczcą prawodopodobiestwa sukcesu z rozkładu dwumianowego można posłużyć się funkcją *prop.test* z biblioteki *stats*. Za jej pomocą możemy zbadać czy prawdopodobieństwa sukcesów wśród kilku grup są sobie równe, bądź czy równają się zadanym wartościom. Za argumenty przyjmuje ona:
+
+-   *x* -- wektor z liczbą sukcesów lub macierz z dwoma kolumnami odpowiadającymi kolejno liczbie sukcesów i porażek;
+
+-   *n* -- wektor z liczba prób, ignorowane jeśli *x* jest macierzą;
+
+-   *p* -- zakładane prawdopodobieństwa sukcesów;
+
+-   *alternative* -- określa hipotezę alternatywną, dostępne opcje to: "two.sided", "greater", "less". Nieignorowane tylko w przypadku, gdy weryfikujemy hipotezę dla jednej grupy lub sprawdzamy, czy prawdopodobieństwa sukcesów dla dwóch grup są sobie równe;
+
+-   *conf.level* -- poziom ufności dla zwróconego przedziału ufności.Nieignorowane tylko w przypadku, gdy weryfikujemy hipotezę dla jednej grupy lub sprawdzamy, czy prawdopodobieństwa sukcesów dla dwóch grup są sobie równe;
+
+-   *correct* -- wartość logiczna wskazująca, czy korekta ciągłości Yatesa powinna być stosowana tam, gdzie to możliwe.
+
+Przy testowaniu hipotez funkcja zwraca wartość statystyki testowej *X-squared*, *p--value*, a także estymowane prawdopodobieństwa sukcesu. Przy badaniu jednej grupy otrzymamy oraz przedział ufności dla *p* na poziomie ufności *conf.level*. W przypadku dwóch grup przedział dotyczy różnicy prawdopodobieństw sukcesów.
+
 ## Zadanie 11
+
+Dla danych z pliku "ankieta.csv" korzystając z funkcji z zadania 10., przyjmując $1 - \alpha = 0.95$, zweryfikowano następujące hipotezy:
+
+```{r, echo=FALSE}
+conf.level <- 0.95
+```
+
+1.  Prawdopodobieństwo, że w firmie pracuje kobieta wynosi 0.5.
+
+```{r}
+exact_results <- binom.test(
+  length(ankieta$PŁEĆ[ankieta$PŁEĆ == 'K']), 
+  nrow(ankieta), 
+  p=0.5, 
+  conf.level=conf.level
+  )
+asymptotic_results <-prop.test(
+  length(ankieta$PŁEĆ[ankieta$PŁEĆ == 'K']), 
+  nrow(ankieta), 
+  p=0.5, 
+  conf.level=conf.level
+  )
+```
+
+Wyniki testu dokładnego
+
+```{r, echo=FALSE}
+exact_results
+```
+
+Wyniki testu asymptotycznego
+
+```{r, echo=FALSE}
+asymptotic_results
+```
+
+Wyniku obu testów ($p-value < 0.05$) wskazują na to, że na poziomie istotności $\alpha = 5\%$ należy odrzucić hipotezę zerową na rzecz hipotezy alternatywnej. Przyjmujemy, że prawdopodobieństwo, że w firmie pracuje kobieta nie wynosi 0.5. Estymowana wartość prawdopodobieństwa wynosi $0.355$.
+
+2.  Prawdopodbieństwo, że pracownik uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie jest większe bądź równe 0.7.
+
+```{r}
+exact_results <- binom.test(
+  length(ankieta$PYT_2[ankieta$PYT_2 %in% c(1, 2)]),
+  nrow(ankieta), 
+  p=0.7, 
+  conf.level=conf.level, 
+  alternative='less')
+
+asymptotic_results <- prop.test(
+  length(ankieta$PYT_2[ankieta$PYT_2 %in% c(1, 2)]),
+  nrow(ankieta), 
+  p=0.7, 
+  conf.level=conf.level, 
+  alternative='less')
+```
+
+Wyniki testu dokładnego
+
+```{r, echo=FALSE}
+exact_results
+```
+
+Wyniki testu asymptotycznego
+
+```{r, echo=FALSE}
+asymptotic_results
+```
+
+Wyniku obu testów ($p-value < 0.05$) wskazują na to, że na poziomie istotności $\alpha = 5\%$ należy odrzucić hipotezę zerową na rzecz hipotezy alternatywnej. Prawdopodbieństwo, że pracownik uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie jest mniejsze niż 0.7. Estymowana wartość prawdopodobieństwa wynosi $0.53$.
+
+3.  Prawdopodobieństwo, że kobieta pracuje na stanowisku kierowniczym jest równe prawdopodobieństwu, że mężczyzna pracuje na stanowisku kierowniczym.
+
+```{r}
+x1 <- subset(ankieta, CZY_KIER == 'Tak' & PŁEĆ == 'K') |> nrow()
+x2 <- subset(ankieta, CZY_KIER == 'Tak' & PŁEĆ == 'M') |> nrow()
+n1 <- subset(ankieta, PŁEĆ == 'K' ) |> nrow()
+n2 <- subset(ankieta, PŁEĆ == 'M' ) |> nrow()
+results <- prop.test(
+  c(x1, x2), 
+  c(n1, n2), 
+  conf.level=conf.level, 
+  alternative='two.sided'
+  )
+```
+
+Wyniki testu asymptotycznego
+
+```{r, echo=FALSE}
+results
+```
+
+Wynik testu wskazuje ($p-value > 0.05$), że na poziomie istotności $\alpha = 5\%$ nie mamy podstaw do odrzucenia hipotezy zerowej o równości prawdopodobieństw na rzecz hipotezy alternatywnej.
+
+4.  Prawdopodobieństwo, że kobieta uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie jest równe prawdopodobieństwu, że mężczyzna uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie.
+
+```{r}
+x1 <- subset(ankieta, PYT_1 %in% c(1, 2) & PŁEĆ == 'K') |> nrow()
+x2 <- subset(ankieta, PYT_1 %in% c(1, 2) & PŁEĆ == 'M') |> nrow()
+n1 <- subset(ankieta, PŁEĆ == 'K') |> nrow()
+n2 <- subset(ankieta, PŁEĆ == 'M') |> nrow()
+results <- prop.test(
+  c(x1, x2), 
+  c(n1, n2), 
+  conf.level=conf.level, 
+  alternative='two.sided'
+  )
+```
+
+Wyniki testu asymptotycznego
+
+```{r, echo=FALSE}
+results
+```
+
+Wynik testu wskazuje ($p-value > 0.05$), że na poziomie istotności $\alpha = 5\%$ nie mamy podstaw do odrzucenia hipotezy zerowej o równości prawdopodobieństw na rzecz hipotezy alternatywnej.
+
+5.  Prawdopodobieństwo, że kobieta pracuje w dziale zasobów ludzkich jest większe lub równe prawdopodobieństwu, że mężczyzna pracuje w dziale zasobów ludzkich.
+
+```{r}
+x1 <- subset(ankieta, DZIAŁ == 'HR' & PŁEĆ == 'K') |> nrow()
+x2 <- subset(ankieta, DZIAŁ == 'HR' & PŁEĆ == 'M') |> nrow()
+n <- subset(ankieta, DZIAŁ == 'HR') |> nrow()
+results <- prop.test(
+  c(x1, x2), 
+  c(n, n), 
+  conf.level=conf.level, 
+  alternative='less'
+  )
+```
+
+Wyniki testu asymptotycznego
+
+```{r, echo=FALSE}
+results
+```
+
+Wynik testu wskazuje ($p-value < 0.05$), że na poziomie istotności $\alpha = 5\%$ mamy podstawy do odrzucenia hipotezy zerowej na rzecz hipotezy alternatywnej. Odrzucenie hipotezy zerowej sugeruje, że prawdopodobieństwo, iż kobieta pracuje w dziale zasobów ludzkich, jest istotnie mniejsze niż prawdopodobieństwo, że pracuje tam mężczyzna.
 
 ## Zadanie 12
 
+Wyznaczono symulacyjnie moc testu dokładnego oraz moc testu asymptotycznego w przypadku weryfikacji hipotezy zerowej $H_0 : p = 0.9$ przeciwko $H_1 : p \neq 0.9$ przyjmując wartość $1 - \alpha = 0.95$. Uwzględniono różne wartości alternatyw i różne rozmiary próby.
+
+Zdefiniowana została funkcja *test*, która przyjmuje liczbę sukcesów i rozmiar próby, a następnie wykonuje dwa testy: dokładny i asymptotyczny. Dla każdego z nich porównuje wartość *p‑value* z poziomem istotności i zwraca decyzję o odrzuceniu lub nieodrzuceniu hipotezy.
+
+```{r}
+p0 <- 0.9
+alpha <- 0.05
+
+test <- function(x, n){
+  p_hat <- x/n
+  H_exact <- ifelse(
+    binom.test(x, n, p=p0)$p.value < alpha, 'H1', 'H0'
+    )
+  H_asymptotic <- ifelse(
+    prop.test(x, n, p=p0)$p.value < alpha, 'H1', 'H0'
+    )
+data.frame(method = c('H_exact', 'H_asymptotic'), 
+           H = c(H_exact, H_asymptotic))
+}
+```
+
+Funkcja *power* służy do oszacowania mocy testu poprzez symulację Monte Carlo. Dla ustalonego rzeczywistego poziomu $p_{value}$ i rozmiaru próby $n$, generowane jest $N=100$ prób losowych, a następnie sprawdzane jest, jak często każdy z testów odrzuca hipotezę zerową. Proporcja tych przypadków stanowi estymowaną moc testu.
+
+```{r}
+power <- function(p_true, n, N = 100) {
+  
+  MC_exact <- 0
+  MC_asymptotic <- 0
+  
+  for (i in 1:N) {
+    X <- rbinom(1, n, p_true)
+    res = test(X, n)
+    MC_exact <- MC_exact + (res$H[1] == "H1")
+    MC_asymptotic <- MC_asymptotic + (res$H[2] == "H1")
+  }
+  
+  MC_exact <- MC_exact / N
+  MC_asymptotic <- MC_asymptotic / N
+  
+  data.frame(method = c('Exact', 'Asymptotic'),
+             power = c(MC_exact, MC_asymptotic))
+}
+```
+
+Kolejna funkcja, *plot_power*, pozwala wizualizować zarówno wartości mocy jako funkcję $p$, jak i różnicę mocy pomiędzy metodami, co pozwala na porównanie ich skuteczności.
+
+```{r}
+plot_power <- function(n, N = 100, ps = seq(0, 1, 0.01), 
+                       title="Moc testu dla różnych wartości p", 
+                       diff=FALSE) {
+  
+  plot_data <- data.frame()
+  
+  for (p in ps) {
+    plot_data <- rbind(plot_data, cbind(data.frame(p=p), power(p, n, N)))
+  }
+  
+  if (diff) {
+    split_dfs <- split(plot_data, plot_data$method)
+
+    exact_power <- split_dfs[["Exact"]][, "power"]
+    
+    split_dfs[["Asymptotic"]][, "power"] <-
+      split_dfs[["Asymptotic"]][, "power"] - exact_power
+    
+    asymptotic_df <- split_dfs[["Asymptotic"]]
+    
+    p1 <- ggplot(
+      plot_data, aes(x=p, y=power, color=method, linetype=method)
+      ) +
+      geom_line() +
+      geom_hline(yintercept = 0.05, linetype="dashed") +
+      scale_color_brewer(palette = "Set1", name = "Metoda") +
+      scale_linetype_discrete(name = "Metoda") +
+      labs(title = title, 
+           x = "p", 
+           y = "Moc testu") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    p2 <- ggplot(
+      asymptotic_df, aes(x=p, y=power, color=method, linetype=method)
+      ) +
+      geom_line() +
+      scale_color_brewer(palette = "Set1", name = "Metoda") +
+      scale_linetype_discrete(name = "Metoda") +
+      labs(title = title, 
+           x = "p", 
+           y = "Różnica mocy testów \n(poziom bazowy - Exact)") +
+      theme(legend.position = "none") +
+      theme_minimal()
+    p1 / p2 + plot_layout(guides = 'collect') +
+      theme(legend.position = "none")
+    
+    
+  } else {
+    ggplot(plot_data, aes(x=p, y=power, color=method, linetype=method)) +
+      geom_line() +
+      geom_hline(yintercept = 0.05, linetype="dashed") +
+      scale_color_brewer(palette = "Set1", name = "Metoda") +
+      scale_linetype_discrete(name = "Metoda") +
+      labs(title = title, 
+           x = "p", 
+           y = "Moc testu") +
+      theme_minimal()
+  }
+}
+```
+
+W dwóch ostatnich fragmentach kodu wykonano analizę dla rozmiarów próby odpowiednio $n=100$ oraz $n=300$, generując wykresy przedstawiające moc testów w zależności od wartości parametru $p$. Szczególne zainteresowanie poświęcono zakresom wartościom bliskim testowanej hipotezie zerowej.
+
+```{r warning=FALSE}
+n <- 100
+plot_power(n, N = 100, title = 'Moc testu dla różnych wartości
+           p - krok 0.01', diff=TRUE) /
+  plot_power(n, N = 100, ps = seq(0.85, 0.95, 0.001), 
+             title = 'Moc testu dla różnych wartości p - krok 0.001') +
+  plot_layout(guides = 'collect')
+```
+
+```{r warning=FALSE}
+n <- 300
+plot_power(n, N = 100, title = 'Moc testu dla różnych wartości
+           p - krok 0.01', diff=TRUE) /
+  plot_power(n, N = 100, ps = seq(0.85, 0.95, 0.001), 
+             title = 'Moc testu dla różnych wartości p - krok 0.001') +
+  plot_layout(guides = 'collect')
+```
+
 # Zadanie dodatkowe
+
+Wyznaczono granicę asymptotycznego przedziału ufności dla prawdopodobieństwa sukcesu bazując na przekształceniu logit korzystając z metody delta. Zaimplementowano metodę oraz porównano wyniki z funkcja ̨ zaimplementowaną ̨ w pakiecie ....
 
 W oparciu o funkcję centralną asymptotyczną $$
 Q(Y, p) = \frac{\sqrt{n}\big(g(\hat{p}(Y)-g(p)\big)}{g'(\hat{p}(Y))\hat{\sigma}}
