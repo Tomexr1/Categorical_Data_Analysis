@@ -770,7 +770,7 @@ Przedział otrzymany za pomocą metody Walda był najlepszy tylko dla dużej pr�
 
 Zapoznano się z funkcjami służącymi do wykonania testu dokładnego oraz asympotycznego weryfikujcego hipotezę zerową dotyczcą prawodopodobiestwa sukcesu z rozkładu dwumianowego.
 
-Do wykonania testu dokładnego weryfikujcego hipotezę zerową dotyczcą prawodopodobiestwa sukcesu z rozkładu dwumianowego można posłużyć się funkcją *binom.test* z biblioteki *stats*. Za argumenty przyjmuje ona:
+Do wykonania testu dokładnego weryfikujcego hipotezę zerową dotyczcą prawodopodobieństwa sukcesu z rozkładu dwumianowego można posłużyć się funkcją *binom.test* z biblioteki *stats*. Za argumenty przyjmuje ona:
 
 -   *x* -- liczba sukcesów lub wektor dwuelementowy zawierający kolejno liczbę sukcesów i porażek;
 
@@ -782,7 +782,7 @@ Do wykonania testu dokładnego weryfikujcego hipotezę zerową dotyczcą prawodo
 
 -   *conf.level* -- poziom ufności dla zwróconego przedziału ufności.
 
-Funkcja zwraca *p--value*, pozwalającą ocenić, czy są podstawy do odrzucenia hipotezy zerowej. W wyniku znajdziemy także estymowane prawdopodobieństwo sukcesu oraz przedział ufności dla *p* na poziomie ufności *conf.level*.
+Funkcja zwraca *p--value*, pozwalającą ocenić, czy są podstawy do odrzucenia hipotezy zerowej. W wyniku znajdziemy także estymowane prawdopodobieństwo sukcesu oraz realizację przedziału ufności dla $\hat{p}$ na poziomie ufności *conf.level*.
 
 Do wykonania testu asymptotycznego weryfikujcego hipotezę zerową dotyczcą prawodopodobiestwa sukcesu z rozkładu dwumianowego można posłużyć się funkcją *prop.test* z biblioteki *stats*. Za jej pomocą możemy zbadać czy prawdopodobieństwa sukcesów wśród kilku grup są sobie równe, bądź czy równają się zadanym wartościom. Za argumenty przyjmuje ona:
 
@@ -798,7 +798,7 @@ Do wykonania testu asymptotycznego weryfikujcego hipotezę zerową dotyczcą pra
 
 -   *correct* -- wartość logiczna wskazująca, czy korekta ciągłości Yatesa powinna być stosowana tam, gdzie to możliwe.
 
-Przy testowaniu hipotez funkcja zwraca wartość statystyki testowej *X-squared*, *p--value*, a także estymowane prawdopodobieństwa sukcesu. Przy badaniu jednej grupy otrzymamy oraz przedział ufności dla *p* na poziomie ufności *conf.level*. W przypadku dwóch grup przedział dotyczy różnicy prawdopodobieństw sukcesów.
+Przy testowaniu hipotez funkcja zwraca wartość statystyki testowej *X-squared*, *p--value*, a także estymowane prawdopodobieństwa sukcesu. Przy badaniu jednej grupy otrzymamy oraz realizację przedziału ufności dla $\hat{p}$ na poziomie ufności *conf.level*. W przypadku dwóch grup przedział dotyczy różnicy prawdopodobieństw sukcesów.
 
 ## Zadanie 11
 
@@ -869,7 +869,7 @@ Wyniki testu asymptotycznego
 asymptotic_results
 ```
 
-Wyniku obu testów ($p-value < 0.05$) wskazują na to, że na poziomie istotności $\alpha = 5\%$ należy odrzucić hipotezę zerową na rzecz hipotezy alternatywnej. Prawdopodbieństwo, że pracownik uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie jest mniejsze niż 0.7. Estymowana wartość prawdopodobieństwa wynosi $0.53$.
+Wyniku obu testów ($p-value < 0.05$) wskazują na to, że na poziomie istotności $\alpha = 5\%$ należy odrzucić hipotezę zerową na rzecz hipotezy alternatywnej. Prawdopodobieństwo, że pracownik uważa szkolenia za przystosowane do swoich potrzeb w pierwszym badanym okresie jest mniejsze niż 0.7. Estymowana wartość prawdopodobieństwa wynosi $0.53$.
 
 3.  Prawdopodobieństwo, że kobieta pracuje na stanowisku kierowniczym jest równe prawdopodobieństwu, że mężczyzna pracuje na stanowisku kierowniczym.
 
@@ -937,7 +937,7 @@ Wyniki testu asymptotycznego
 results
 ```
 
-Wynik testu wskazuje ($p-value < 0.05$), że na poziomie istotności $\alpha = 5\%$ mamy podstawy do odrzucenia hipotezy zerowej na rzecz hipotezy alternatywnej. Odrzucenie hipotezy zerowej sugeruje, że prawdopodobieństwo, iż kobieta pracuje w dziale zasobów ludzkich, jest istotnie mniejsze niż prawdopodobieństwo, że pracuje tam mężczyzna.
+Wynik testu wskazuje ($p-value < 0.05$), że na poziomie istotności $\alpha = 5\%$ powinniśmy odrzucić hipotezę zerową na rzecz hipotezy alternatywnej. Odrzucenie hipotezy zerowej sugeruje, że prawdopodobieństwo, iż kobieta pracuje w dziale zasobów ludzkich, jest istotnie mniejsze niż prawdopodobieństwo, że pracuje tam mężczyzna.
 
 ## Zadanie 12
 
@@ -1069,23 +1069,42 @@ plot_power(n, N = 100, title = 'Moc testu dla różnych wartości
   plot_layout(guides = 'collect')
 ```
 
+Dla 100 kroków Monte-Carlo w przypadku rozmiaru próby $n=100$ oraz $n=300$ oba testy trzymały poziom istotności $\alpha=0.05$ dla wartości $p$ z hipotezy zerowej, tzm. moc jest poniżej poziomu istotności. W przypadku rozmiaru próby $n=100$ moc testu dokładnego była wyższa od mocy testu asymptotycznego, co dobrze widać na wykresie różnicy między mocami testów, zatem test dokładny jest w tym wypadku testem jednostajnie najmocniejszym. W przypadku rozmiaru próby $n=300$ moce obu testów są identyczne, dla tak dużych $n$ kwestia wyboru testu nie ma większego znaczenia.
+
 # Zadanie dodatkowe
 
-Wyznaczono granicę asymptotycznego przedziału ufności dla prawdopodobieństwa sukcesu bazując na przekształceniu logit korzystając z metody delta. Zaimplementowano metodę oraz porównano wyniki z funkcja ̨ zaimplementowaną ̨ w pakiecie ....
+Wyznaczono granicę asymptotycznego przedziału ufności dla prawdopodobieństwa sukcesu bazując na przekształceniu logit korzystając z metody delta. Zaimplementowano metodę oraz porównano wyniki z funkcją zaimplementową w pakiecie *DescTools*.
 
 W oparciu o funkcję centralną asymptotyczną $$
 Q(Y, p) = \frac{\sqrt{n}\big(g(\hat{p}(Y)-g(p)\big)}{g'(\hat{p}(Y))\hat{\sigma}}
-$$ dąży wg. rozkładu do $N(0,1)$ dla zmiennej losowej $Y$ z rozkładu dwumianowego o liczbie prób $n$ i nieznanym parametrze prawdopodbieństwa $p$. W celu wyznaczenia przedziału ufności logit wybieramy $g(p) = \log{\frac{p}{1-p}}$. Pochodna tej funkcji to $\frac{\operatorname{d}\!g}{\operatorname{d}\!p}=\frac{1}{p(1+p)}$. Za estymator odchylenia standardowego bierzemy $\hat{\sigma} = \sqrt{p(1-p)}$ i estymator $p$ -- estymator największej wiarygności $\hat{p} = \frac{Y}{n}$. Teraz wyznaczamy przedział ufności dla parmetru $g(p)$. $$
-P(-z_{1-\frac{\alpha}{2}}\le Q(Y,p)\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
-P(-z_{1-\frac{\alpha}{2}}\le \frac{\sqrt{n}(g(\hat{p})-g(p))}{\frac{1}{p(1-p)}\sqrt{p(1-p)}}\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
-P\big(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\le g(p)\le g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\big) = 1 - \alpha \\
-$$ Zatem przdział ten jest postaci $[T_L', T_U']$, gdzie $$
-T_L' = g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}},\\
-T_U' = g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}},
-$$ gdzie $z_\beta$ to kwantyl standardowego rozkładu normalnego rzędu $\beta$.\\ Biorąc funkcję odwrotną otrzymujemy asymptotyczny przedział ufności logit dla parametru $p$ postaci $[T_L, T_U]$, gdzie $$
-T_L = g^{-1}\biggr(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\biggr),\\
-T_U = g^{-1}\biggr(g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{p(1-p)n}}\biggr).
+$$ dąży wg. rozkładu do $N(0,1)$ dla zmiennej losowej $Y$ z rozkładu dwumianowego o liczbie prób $n$ i nieznanym parametrze prawdopodbieństwa $p$. W celu wyznaczenia przedziału ufności logit wybieramy $g(p) = \log{\frac{p}{1-p}}$. Pochodna tej funkcji to $\frac{\operatorname{d}\!g}{\operatorname{d}\!p}=\frac{1}{p(1+p)}$. Za estymator odchylenia standardowego bierzemy $\hat{\sigma} = \sqrt{p(1-p)}$ i estymator $p$ -- estymator największej wiarygności $\hat{p} = \frac{Y}{n}$. Teraz wyznaczamy przedział ufności dla parmetru $g(p)$.
+
 $$
+\begin{aligned}
+&P(-z_{1-\frac{\alpha}{2}}\le Q(Y,p)\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
+&P(-z_{1-\frac{\alpha}{2}}\le \frac{\sqrt{n}(g(\hat{p})-g(p))}{\frac{1}{\hat{p}(1-\hat{p})}\sqrt{\hat{p}(1-\hat{p})}}\le z_{1-\frac{\alpha}{2}}) = 1 - \alpha \\
+&P\big(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{\hat{p}(1-\hat{p})n}}\le g(p)\le g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{\hat{p}(1-\hat{p})n}}\big) = 1 - \alpha \\
+\end{aligned}
+$$
+
+
+
+Zatem przdział ten jest postaci $[T_L', T_U']$, gdzie 
+$$
+\begin{aligned}
+&T_L' = g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{\hat{p}(1-\hat{p})n}},\\
+&T_U' = g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{\hat{p}(1-\hat{p})n}},
+\end{aligned}
+$$ gdzie $z_\beta$ to kwantyl standardowego rozkładu normalnego rzędu $\beta$.
+
+Biorąc funkcję odwrotną otrzymujemy asymptotyczny przedział ufności logit dla parametru $p$ postaci $[T_L, T_U]$, gdzie 
+$$
+\begin{aligned}
+&T_L = g^{-1}\biggr(g(\hat{p})-\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{\hat{p}(1-\hat{p})n}}\biggr),\\
+&T_U = g^{-1}\biggr(g(\hat{p})+\frac{z_{1-\frac{\alpha}{2}}}{\sqrt{\hat{p}(1-\hat{p})n}}\biggr).
+\end{aligned}
+$$
+
 
 Poniżej zaimplementowano jego realizację dla obserwowanych realizacji zmiennych losowych.
 
@@ -1096,12 +1115,27 @@ logit_CI <- function(x, n, alpha=0.05) {
   z <- qnorm(alpha / 2)
   L <- Logit(p) - z * se
   U <- Logit(p) + z * se
-  data.frame(est=p, lwr.ci=exp(U) / (1 + exp(U)), upr.ci=exp(L) / (1 + exp(L)))
+  data.frame(est=p, lwr.ci=LogitInv(L), upr.ci=LogitInv(U))
 }
-
-logit_CI(3,10)
-BinomCI(3, 10, method="logit")
-
-logit_CI(30,100)
-BinomCI(30, 100, method="logit")
 ```
+
+Dla przykładowej realizacji zmiennej losowej z rozkładu $B(n, p)$, gdzie $n=10$ oraz $p=0.3$, obliczamy przedziały ufności obiema metodami.
+
+```{r}
+x <- rbinom(1, 10, 0.3)
+
+own <- logit_CI(x,10)
+dtools <- BinomCI(x, 10, method="logit")
+own
+```
+
+```{r}
+dtools
+```
+
+```{r}
+atol <- 1e-8
+all(abs(own[,2:3] - dtools[,2:3]) <= atol)
+```
+
+Wyniki są zgodne z tolerancją $10^{-8}$, co potwierdza poprawność implementacji.
