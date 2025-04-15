@@ -1,0 +1,200 @@
+---
+title: "Analiza danych ankietowych"
+author:
+- Joanna Kusy
+- Tomasz Srebniak
+subtitle: Sprawozdanie 2
+output:
+  pdf_document:
+    toc: true
+    fig_caption: true
+    fig_width: 5
+    fig_height: 4
+    number_sections: true
+  html_document:
+    toc: true
+    df_print: paged
+header-includes:
+- \usepackage[OT4]{polski}
+- \usepackage[utf8]{inputenc}
+- \usepackage{graphicx}
+- \usepackage{float}
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+if (!require(knitr)) install.packages("knitr")
+if (!require(readr)) install.packages("readr")
+if (!require(latex2exp)) install.packages("latex2exp")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(vctrs)) install.packages("vctrs")
+if (!require(tidyr)) install.packages("tidyr")
+if (!require(xtable)) install.packages("xtable")
+library(binom)
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "", fig.align = "center")
+
+```
+
+\newpage
+
+# Część I
+
+## Zadanie 1
+
+W ankiecie przedstawionej na poprzedniej liście pracownicy zostali poproszeni o wyrażenie opinii na temat skuteczności szkolenia "Efektywna komunikacja w zespole" zorganizowanego przez firmę.
+
+Na podstawie odpowiedzi wyznaczono realizację przedziału ufności dla wektora prawdopodobieństw opisującego stopień zadowolenia ze szkolenia. Przyjęto poziom ufności $0.95$ oraz zastosowano poprawkę Bonferroniego.
+
+Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego metodą Cloppera–Pearsona.
+
+```{r zad1_dane, echo=FALSE}
+res <- c(14, 17, 40, 100, 29)
+alpha <- 0.05
+```
+
+```{r zad1_exact}
+ci_exact <- binom.confint(res, 200, 1 - alpha/5, method='exact')
+ci_exact$len <- ci_exact$upper - ci_exact$lower
+```
+
+```{r zad1_exact_res, echo=FALSE}
+ci_exact
+```
+
+Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego metodą Wilsona.
+
+```{r zad1_wilson, echo=FALSE}
+ci_wilson <-binom.confint(res, 200, 1 - alpha/5, method='wilson')
+ci_wilson$len <- ci_wilson$upper - ci_wilson$lower
+ci_wilson
+```
+
+Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego metodą asymptotyczną, opartą na Centralnym Twierdzeniu Granicznym.
+
+```{r zad1_asymptotic, echo=FALSE}
+ci_asymptotic <-binom.confint(res, 200, 1 - alpha/5, method='asymptotic')
+ci_asymptotic$len <- ci_asymptotic$upper - ci_asymptotic$lower
+ci_asymptotic
+```
+
+Dla zadanych kategorii otrzymujemy proporcje:
+
+-   $0.070$ – odsetek osób bardzo niezadowolonych,
+
+-   $0.085$ – odsetek osób niezadowolonych,
+
+-   $0.200$ – odsetek osób nie mających zdania,
+
+-   $0.500$ – odsetek osób zadowolonych,
+
+-   $0.145$ – odsetek osób bardzo zadowolonych.
+
+W zależności od wybranej metody, zmieniają się dolna i górna granica przedziału ufności. Dla kategorii z niewielką liczbą odpowiedzi (14 i 17 głosów) najwęższą realizację przedziału uzyskano przy zastosowaniu metody asymptotycznej. Wraz ze wzrostem liczby odpowiedzi (29 głosów), różnice w długości realizacji przedziałów wyznaczonych metodą asymptotyczną i metodą Wilsona stają się niewielkie. Dla kategorii, w których liczba odpowiedzi wynosiła 40 lub więcej, najwęższa realizacja przedziału została dzięki metodzie Wilsona. Metoda Cloppera–Pearsona nie dała najkrótszej realizacji przedziału dla żadnej z proporcji. Wynika to z faktu, że jest to metoda dokładna, która w sposób konserwatywny utrzymuje zadany poziom ufności.
+
+## Zadanie 2
+
+Napisano funkcję, która wyznacza wartość poziomu krytycznego w testach $\chi^2$ Pearsona oraz $\chi^2$ największej wiarogodności. Testy te służą do weryfikacji hipotezy $H_0: \mathbf{p} = \mathbf{p_0}$ przy hipotezie alternatywnej $H_1:\mathbf{p} \neq \mathbf{p_0}$ na podstawie obserwacji $\mathbf{x}$ wektora losowego $\mathbf{X}$ z rozkładu wielomianowego z parametrami $n$ i $\mathbf{p}$.
+
+### Test $\chi^2$ Pearsona
+
+Statystyką testową w teście jest $$
+\chi^2 = \sum_{i=1}^k\frac{(X_i - np_{0i})^2}{np_{0i}},
+$$ gdzie $p_{0i}$ jest i–tą składową wektora $\mathbf{p}$. \newline \newline Przy założeniu, że $H_0$ jest prawdziwa statystyka $\chi^2$ ma asymptotycznie rozkład $\chi^2$ z $k-1$ stopniami swobody. \newline
+
+Wartość poziomu krytycznego liczymy jako $$
+p–value=1-F_{\chi_{k-1}^2}(\chi^2(\mathbf{x})),
+$$ gdzie $F_{\chi_{k-1}^2}$ jest dystrybuantą rozkładu $\chi^2$ z $k-1$ stopniami swobody, a $\chi^2(\mathbf{x})$ wartością statystki dla realizacji $\mathbf{x}$. \newline
+
+### Test $\chi^2$ największej wiarogodności
+
+Statystyką testową w teście IW jest $$
+G^2 = 2\sum_{i=1}^kX_i\ln\bigg(\frac{X_i}{np_{0i}}\bigg)
+$$ Przy założeniu, że $H_0$ jest prawdziwa statystyka $G^2$ ma asymptotycznie rozkład $\chi^2$ z $k-1$ stopniami swobody. \newline
+
+Wartość poziomu krytycznego liczymy jako $$
+p–value=1-F_{\chi_{k-1}^2}(G^2(\mathbf{x})),
+$$ gdzie $F_{\chi_{k-1}^2}$ jest dystrybuantą rozkładu $\chi^2$ z $k-1$ stopniami swobody, a $G^2(\mathbf{x})$ wartością statystki dla realizacji $\mathbf{x}$. \newline
+
+```{r testy_chi}
+chi_sq_test <- function(x, p0, method='pearson') {
+  if (method == 'pearson') {
+    n <- sum(x)
+    Chi2 <- sum((x - n * p0)^2 / (n * p0))
+    p_val <- 1 - pchisq(Chi2, length(x) - 1)
+    print(paste("p-value:", p_val))
+  }
+  if (method == 'IW') {
+    n <- sum(x)
+    G2 <- 2 * sum(x * log(x / (n * p0)))
+    p_val <- 1 - pchisq(G2, length(x) - 1)
+    print(paste("p-value:", p_val))
+  }
+}
+```
+
+Dla danych z poprzedniego zadania i $H_0: \mathbf{p} = (0.1, 0.2, 0.4, 0.2, 0.1)$ za pomocą funkcji otrzymamy następujące wartości poziomu krytycznego:
+
+-   dla testu $\chi^2$ Pearsona
+
+```{r chi2_pearson_res}
+chi_sq_test(res, c(0.1, 0.2, 0.4, 0.2, 0.1), method='pearson')
+```
+
+-   dla testu $\chi^2$ największej wiarogodności
+
+```{r chi2_likelihood_res}
+chi_sq_test(res, c(0.1, 0.2, 0.4, 0.2, 0.1), method='IW')
+```
+
+Dla obu testów dla zadanego poziomu istotności $\alpha =0.05$ odrzucamy hipotezę zerową $H_0$ na rzecz hipotezy alternatywnej $H_1: \mathbf{p} \neq (0.1, 0.2, 0.4, 0.2, 0.1)$.
+
+## Zadanie 3
+
+Na podstawie danych z ankiety z poprzedniej listy zweryfikowano hipotezę, że w grupie pracowników zatrudnionwych w Dziale Produktowym rozkład odpowiedzi na pytanie "Jak bardzo zgadzasz się ze stwierdzeniem, że firma zapewnia odpowiednie wsparcie i materiały umożliwiające skuteczne wykorzystanie w praktyce wiedzy zdobytej w trakcie szkoleń?" jest równomierny. Przyjęto poziom istotności 0.05. Skorzystano z funkcji napisanej w zadaniu 2.
+
+```{r zad3_setup, echo=FALSE}
+ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/sprawozdanie1/ankieta.csv', header = TRUE, sep = ";", fileEncoding = "Latin2")
+vec <- subset(ankieta, DZIAŁ == 'PD') %>% group_by(PYT_1) %>%
+  summarise(n = n()) %>% select(n)
+vec <- as.numeric(vec$n)
+```
+
+```{r zad3_pearson}
+chi_sq_test(vec, rep(1/5, 5), method='pearson')  
+```
+
+```{r zad3_likelihood}
+chi_sq_test(vec, rep(1/5, 5), method='IW')
+```
+
+Dla obu testów dla zadanego poziomu istotności $\alpha =0.05$ odrzucamy hipotezę o równomiernym rozkładzie odpowiedzi.
+
+# Część II
+
+## Zadanie 4
+
+### Test Fishera
+
+Do wykonania testu Fishera w pakiecie R można posłużyć się funkcją *tu_funkcja* z biblioteki *biblioteka*.
+
+Przyjmuje ona następujące argumenty:
+
+-   abc
+
+### Test Freemana-Haltona
+
+Do wykonania testu Freemana-Haltona w pakiecie R można posłużyć się funkcją *tu_funkcja* z biblioteki *biblioteka*.
+
+Przyjmuje ona następujące argumenty:
+
+-   abc
+
+## Zadanie 5
+
+## Zadanie 6
+
+# Część III
