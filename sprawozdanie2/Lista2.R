@@ -147,15 +147,20 @@ simulate_power <- function(n, iter, prob, alpha) {
     fisher_p <- fisher.test(table)$p.value
     chisq_p <- suppressWarnings(chisq.test(table, correct = FALSE, simulate.p.value = TRUE)$p.value)
     
+    iter_chisq <- iter
+    
     if (fisher_p < alpha) {
       fisher_rejections <- fisher_rejections + 1
     } 
     if (!is.na(chisq_p) && chisq_p < alpha) {
       chisq_rejections <- chisq_rejections + 1
     }
+    if (is.na(chisq_p)) {
+      iter_chisq <- iter_chisq - 1
+    }
   }
   fisher_power <- fisher_rejections / iter
-  chisq_power <- chisq_rejections / iter
+  chisq_power <- chisq_rejections / iter_chisq
   
   return(c(Fisher = fisher_power, ChiSq = chisq_power))
 }
