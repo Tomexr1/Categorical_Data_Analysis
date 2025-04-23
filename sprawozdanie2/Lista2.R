@@ -89,3 +89,109 @@ fisher.test(t, conf.level = 0.95)
 t <- table(ankieta$CZY_ZADOW, ankieta$WIEK_KAT)
 fisher.test(t, conf.level = 0.95)
 # p-value > 0.05 => ogólniejsze zadowolenie ze szkoleń nie zależy od wieku
+
+# zad 7
+# chi2 independence test chisq.test
+# install.packages("vcd")
+library(grid)
+library(vcd)
+
+# zad 8
+t <- table(ankieta$PYT_2, ankieta$CZY_KIER)
+
+summary(t)
+
+res <- chisq.test(t, correct = TRUE)
+res$p.value
+
+assocstats(t)
+# p-value < 0.05 => zadowolenie ze szkoleń zależy od zajmowanego stanowiska
+library(ggstatsplot)
+library(ggplot2)
+
+# plot
+ggbarstats(
+  data = ankieta,
+  x = PYT_2,
+  y = CZY_KIER,
+) +
+  labs(caption = NULL) # remove caption
+
+mosaic(~ PYT_2 + CZY_KIER,
+       direction = c("v", "h"),
+       data = ankieta,
+       shade = TRUE
+)
+# zad 9
+data <- rmultinom(1, size = 50, prob = c(1/40, 19/40, 3/40, 17/40))
+data <- matrix(data, nrow = 2)
+data
+
+set.seed(123)  # dla powtarzalności
+
+# Parametry
+prob <- c(1, 3, 19, 17) / 40
+alpha <- 0.05
+n_iter <- 10000
+n_values <- c(50, 100, 1000)
+
+# Funkcja do przeprowadzenia symulacji
+simulate_power <- function(n, iter, prob, alpha) {
+  fisher_rejections <- 0
+  chisq_rejections <- 0
+  
+  for (i in 1:iter) {
+    sample <- rmultinom(1, size = n, prob = prob)
+    table <- matrix(sample, nrow = 2, byrow = TRUE)
+    
+    fisher_p <- fisher.test(table)$p.value
+    chisq_p <- suppressWarnings(chisq.test(table, correct = FALSE, simulate.p.value = TRUE)$p.value)
+    
+    if (fisher_p < alpha) {
+      fisher_rejections <- fisher_rejections + 1
+    } 
+    if (!is.na(chisq_p) && chisq_p < alpha) {
+      chisq_rejections <- chisq_rejections + 1
+    }
+  }
+  fisher_power <- fisher_rejections / iter
+  chisq_power <- chisq_rejections / iter
+  
+  return(c(Fisher = fisher_power, ChiSq = chisq_power))
+}
+
+# Wykonanie symulacji
+results <- sapply(n_values, function(n) simulate_power(n, n_iter, prob, alpha))
+colnames(results) <- paste("n =", n_values)
+print(round(results, 4))
+
+# zad 10
+# Napisz funkcje ̨, która dla danych z tablicy dwudzielczej oblicza wartos ́c ́ poziomu krytycznego w tes ́cie niezalez ̇nosci opartym na ilorazie wiarogodnosci.
+lr_test_pvalue <- function(table) {
+  # Obserwacje
+  observed <- table
+  total <- sum(observed)
+  
+  # Oczekiwane liczności pod H0 (niezależność)
+  row_totals <- rowSums(observed)
+  col_totals <- colSums(observed)
+  expected <- outer(row_totals, col_totals) / total
+  
+  # Wykluczenie zer (dla bezpieczeństwa w log)
+  valid <- observed > 0
+  
+  # Obliczenie statystyki G^2
+  G2 <- 2 * sum(observed[valid] * log(observed[valid] / expected[valid]))
+  
+  # Stopnie swobody: (r-1)(c-1)
+  df <- (nrow(observed) - 1) * (ncol(observed) - 1)
+  
+  # Obliczenie p-value
+  p_value <- 1 - pchisq(G2, df = df)
+  
+  return(p_value)
+}
+
+
+t <- table(ankieta$PYT_2, ankieta$CZY_KIER)
+lr_test_pvalue(t)
