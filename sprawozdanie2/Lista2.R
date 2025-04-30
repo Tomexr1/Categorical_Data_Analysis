@@ -195,3 +195,39 @@ lr_test_pvalue <- function(table) {
 
 t <- table(ankieta$PYT_2, ankieta$CZY_KIER)
 lr_test_pvalue(t)
+
+table <- matrix(c(20, 30, 25, 25), nrow = 2)
+lr_test_pvalue(table)
+
+# zad 11
+t <- matrix(c(0.00140, 0.00010, 0.00669, 0.00413), nrow = 2)
+rownames(t) <- c("Palenie", "Nie palenie")
+colnames(t) <- c("Rak płuc", "Choroba niedokrwienna serca")
+RP_p <- t[1, 1] - t[2, 1]
+RP_p # chyba male, brak zaleznosci
+RP_s <- t[1, 2] - t[2, 2]
+RP_s # chyba male, brak zaleznosci
+RR_p <- t[1, 1] / t[2, 1]
+RR_s <- t[1, 2] / t[2, 2]
+RR_p # duze ryzyko, moze jednak byc zaleznosc
+RR_s # blisko jedynki, brak zaleznosci
+OR_p <- t[1, 1] / (1 - t[1, 1]) / (t[2, 1] / (1 - t[2, 1]))
+OR_s <- t[1, 2] / (1 - t[1, 2]) / (t[2, 2] / (1 - t[2, 2]))
+OR_p # duze ryzyko, moze jednak byc zaleznosc
+OR_s # blisko jedynki, brak zaleznosci
+
+# zad 12
+t <- matrix(c(1085, 703, 55623, 441239), nrow = 2)
+rownames(t) <- c('bez pasów', 'z pasami')
+colnames(t) <- c('śmiertelny', 'nieśmiertelny')
+t
+# 12.1
+pi1 <- t[1, 1] / sum(t[1, ])
+pi2 <- t[2, 1] / sum(t[2, ])
+pi1
+pi2
+# 12.2
+pi1 <- t[1, 1] / sum(t[, 1])
+pi2 <- t[2, 1] / sum(t[, 2])
+pi1
+pi2
