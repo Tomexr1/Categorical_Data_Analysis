@@ -1,278 +1,198 @@
 ---
 title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
 author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+execute: 
+  echo: true
 format:
   revealjs:
-    scrollable: true
-    transition: slide
     theme: serif
+    transition: slide
+    scrollable: true
     self-contained: true
-    header-includes:
-      - |
-        <style>
-          .justified-text {
-            text-align: justify;
-          }
-          .reveal section {
-              padding-right: 30px; /* Dodaj margines po prawej stronie */
-            }
-        </style>
 title-slide-attributes:
-    data-background-image: "images/img_prezentacja2.jpg"
+    data-background-image: "img_prezentacja2.jpg"
     data-background-size: cover
     data-background-opacity: "0.65"
     data-background-color: "#000000"
-jupyter: python3
 ---
 
-## Ocena wydajności modelu
+## Powtórzenie
 
-```{r}
-# library(reticulate)
-# use_condaenv("/Users/tomasz/opt/anaconda3/bin/python", required = TRUE)
+Model GARCH wykorzystywany jest przy modelowaniu i przewidywaniu zmienności w szeregach czasowych. Stosuje się go głównie w analizie finansowej.\
+
+Wzór ogólny
+
+$$
+GARCH(p, q): \sigma_t^2=\omega+\sum_{i=1}^{p}{\alpha_i\epsilon_{t-i}^2} + \sum_{j=1}^{q}{\beta_j\sigma_{t-j}^2}
+$$
+
+Najczęściej omawiany przypadek
+
+$$
+GARCH(1, 1): \sigma_t^2=\omega+{\alpha\epsilon_{t-1}^2} + {\beta\sigma_{t-1}^2}
+$$
+
+$\omega$ - bazowy poziom wariancji warunkowej
+
+$\alpha$ – współczynnik reakcji na nowe informacje (efekt ARCH)
+
+$\beta$ – współczynnik pamięci zmienności (efekt GARCH)
+
+$\epsilon_{t-1}^2$ – kwadrat błędu z kroku $t-1$
+
+$\sigma_{t-1}^2$ – wariancja z kroku $t-1$
+
+```{r setup}
+#| echo: false
+#| warning: false
+#| error: false
+#| output: false
+library(reticulate)
+options(reticulate.python = "/opt/homebrew/bin/python3")
 ```
 
-## Testowanie istotności parametrów {.smaller}
-#### Test t-Studenta
-Dla każdego parametru $\theta_i$ modelu GARCH przeprowadzamy test istotności, aby sprawdzić, czy jego wartość jest statystycznie różna od zera. W tym celu używa się testu t-Studenta, który sprawdza hipotezę zerową
-$$
-H_0: \theta_i = 0,
-$$
-przeciwko 
-$$
-H_1: \theta_i \neq 0.
-$$
-Statystyką testową jest
-$$
-t_i = \frac{\hat{\theta_i}}{SE(\hat{\theta_i})},
-$$
-gdzie $\hat{\theta_i}$ to oszacowana wartość parametru, a $SE(\hat{\theta_i})$ to jego błąd standardowy. Asymptotycznie $t_i$ ma rozkład normalny, więc wykonujemy sprawdzenie
-$$ 
-|t_i| > z_{1-\alpha/2},
-$$
-gdzie $z_{1-\alpha/2}$ to kwantyl rozkładu normalnego standardowego dla poziomu istotności $\alpha$.
-
-Alternatywnie, możemy patrzeć na poziom krytyczny $p$-value, który jest obliczany jako
-$$
-p = 2 \cdot (1 - \Phi(|t_i|)),
-$$
-gdzie $\Phi$ to funkcja dystrybuanty rozkładu normalnego. Jeśli $p < \alpha$, to odrzucamy hipotezę zerową i uznajemy, że parametr jest istotny statystycznie.
-
-- W praktyce, zazwyczaj, gdy $|t_i| > 2$, to możemy uznać, że parametr jest istotny na poziomie $\alpha = 0.05$.
-
-## Testowanie istotności parametrów {.smaller}
-#### Istotność parametrów dla modelu GARCH(1,1) 
 ```{python}
+#| echo: false
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from arch import arch_model
+from arch.univariate import SkewStudent
 ```
 
-- Wczytujemy dane i obliczamy logarytmiczne stopy zwrotu z akcji Google. Wykres logarytmicznych stóp zwrotu przedstawia zmienność cen akcji w czasie.
+```{python, echo=FALSE, output=FALSE}
+df = pd.read_csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/matematyka_dla_przemyslu/Prezentacja4/Dane - Kaggle/aapl.us.txt')['Close']
 
-```{python}
-#| include: TRUE
-#| echo: TRUE
-googl = pd.read_csv('data/aapl.us.txt', index_col=0, skiprows=2)
-googl['log_return'] = np.log1p(googl.iloc[:,0].pct_change())
-googl = googl.log_return
-googl.index = pd.to_datetime(googl.index, format='%Y-%m-%d')
-googl.dropna(inplace=True)
+# Liczenie zwrotów procentowych
+returns = df.pct_change().dropna()
 
-googl.plot(title='Log Returns of Google Stock', figsize=(14, 4))
+normal_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 'normal')
+
+gm_result = normal_gm.fit()
 ```
 
-- Dopasowujemy model.
+## Założenia dotyczące rozkładu standaryzowanych reszt
+
+$$
+\text{reszta} = \epsilon_t = \text{predyktowany zwrot} - \text{średni zwrot}
+$$
+
+$$
+\text{standaryzowana reszta} = \frac{\epsilon_t}{\sigma_t}
+$$
 
 ```{python}
-#| include: TRUE
-#| echo: TRUE
-model = arch_model(googl, p = 1, q = 1, mean = 'constant', vol = 'GARCH', dist = 't')
-model_fit = model.fit(disp='off', cov_type = 'robust')
+gm_resid = gm_result.resid
+gm_std = gm_result.conditional_volatility
 
-model_fit.summary()
+gm_std_resid = gm_resid / gm_std
 ```
 
-## Testowanie istotności parametrów {.smaller}
-#### Estymacja parametrów
+\
 
-##### Maximum Likelihood Estimation (MLE)
+-   Rozkład normalny (domyślna opcja): `"normal"`
 
+-   Rozkład t-Studenta -- grube ogony rozkładu: `"t"`
 
-##### Robust Standard Errors (Bollerslev-Wooldridge)
+-   Skośny rozkład t-Studenta -- grube ogony i skośność: `"skewt"`
 
-## Walidacja założeń modelu {.smaller}
-#### Wykres residuów
-
-- Szukamy wzorców w resztach modelu, które mogą sugerować, że model nie jest odpowiedni. Wykresy residuów powinny być losowe i nie wykazywać żadnych wyraźnych wzorców.
-- Zgodnie z założeniami reszty powinny być z rozkładu normalnego, widać jednak często występujące ekstremalne wartości.
-
+Implementacja
 
 ```{python}
-fig, ax = plt.subplots(2, 1, figsize=(14, 6))
-ax[0].plot(model_fit.std_resid)
-ax[0].set_title('Standardized Residuals of GARCH(1,1) Model')
-ax[1].hist(model_fit.std_resid, bins=30, density=True)
-x = np.linspace(-4, 4, 100)
-ax[1].plot(x, (1/np.sqrt(2*np.pi)) * np.exp(-0.5*x**2), 'r', lw=2, label='N(0,1)')
-#plot t density
-from scipy.stats import t
-ax[1].plot(x, t.pdf(x, df=model_fit.params['nu']), 'g', lw=2, label='t-distribution')
-ax[1].legend()
-ax[1].set_xlim(-4, 4)
-ax[1].set_title('Histogram of Standardized Residuals')
-ax[1].set_xlabel('Residuals')
-ax[1].set_ylabel('Density')
-plt.tight_layout()
+normal_gm = arch_model(
+  returns, p = 1, q = 1, 
+  mean = 'constant', 
+  vol = 'GARCH', 
+  dist = 'normal'  # założenie o rozkładzie
+  )
+```
+
+```{python, echo=FALSE, output=FALSE}
+normal_resid = np.random.normal(0, 1, len(gm_std_resid))
+
+# tstudent
+t_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 't')
+
+gm_t_result = t_gm.fit()
+
+gm_t_resid = gm_t_result.resid
+gm_t_std = gm_t_result.conditional_volatility
+
+gm_t_std_resid = gm_t_resid /gm_t_std
+
+df_hat = gm_t_result.params['nu']
+t_resid = np.random.standard_t(df=df_hat, size=len(gm_t_std_resid))
+t_resid_scaled = t_resid / np.sqrt(df_hat / (df_hat - 2))
+
+# skośny tstudent
+skewt_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 'skewt')
+
+gm_skewt_result = skewt_gm.fit()
+
+gm_skewt_resid = gm_skewt_result.resid
+gm_skewt_std = gm_skewt_result.conditional_volatility
+
+gm_skewt_std_resid = gm_skewt_resid /gm_skewt_std
+
+df_hat_skewt = gm_skewt_result.params['eta']
+skew_hat = gm_skewt_result.params['lambda']
+
+skewt = SkewStudent()
+f_skew_resid = skewt.simulate((df_hat_skewt, skew_hat))
+skewt_resid = f_skew_resid(len(gm_skewt_std_resid))
+```
+
+---------------------------------------------------------------
+
+### Rozkład normalny standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.hist(normal_resid, bins = 50, 
+         facecolor = 'tomato', label = 'Normal residuals', alpha=0.7)
+plt.legend(loc = 'upper left')
 plt.show()
 ```
 
-## Walidacja założeń modelu {.smaller}
-#### Autokorelacja residuów - ACF
-```{python}
-#| include: TRUE
-#| echo: TRUE
-from statsmodels.graphics.tsaplots import plot_acf
+### Rozkład t--Studenta standaryzowanych reszt
 
-fig, ax = plt.subplots(1, 1, figsize=(14, 4))
-plot_acf(model_fit.std_resid, lags=40, ax=ax, alpha=0.05)
-ax.set_title('ACF of Standardized Residuals')
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_t_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.hist(t_resid_scaled, bins = 50, 
+         facecolor = 'tomato', label = 't-Student residuals', alpha=0.7)
+plt.legend(loc = 'upper left')
 plt.show()
 ```
 
-## Walidacja założeń modelu {.smaller}
-#### Test Ljung-Boxa
-Test Ljung-Boxa sprawdza, czy reszty modelu są niezależne. Hipotezy testowe są następujące:
-$$
-H_0: \text{reszty są niezależne} \\
-H_1: \text{reszty są skorelowane}.
-$$
-Robimy wykres $p$-value dla różnych opóźnień $h$.
-```{python}
-#| include: TRUE
-#| echo: TRUE
-from statsmodels.stats.diagnostic import acorr_ljungbox
+### Skośny rozkład t--Studenta standaryzowanych reszt
 
-
-ljung_box = acorr_ljungbox(model_fit.std_resid, return_df=True)
-ljung_box['lb_pvalue'].plot(title='Ljung-Box Test p-values', figsize=(14, 4), style='.')
-plt.axhline(y=0.05, color='r', linestyle='--')
-plt.xlabel('Lag')
-plt.ylabel('p-value')
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_skewt_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.hist(skewt_resid, bins = 50, 
+         facecolor = 'tomato', label = 'skewt residuals', alpha=0.7)
+plt.legend(loc = 'upper left')
 plt.show()
 ```
 
-## Miary dopasowania modelu {.smaller}
-:::: {.columns}
+## Założenia o średniej
 
-::: {.column width="50%"}
-#### Akaike Information Criterion (AIC)
-$$
-AIC = -2 \cdot \log(L) + 2 \cdot k
-$$
-gdzie $L$ to funkcja wiarygodności, a $k$ to liczba parametrów w modelu. Im mniejsza wartość AIC, tym lepsze dopasowanie modelu.
+-   Stała średnia (domyślna opcja): `"constant"`
 
-- Preferuje modele o mniejszej liczbie parametrów, ale nie karze ich zbytnio za złożoność.
-- Jeśli zależy nam na lepszych zdolnościach predykcyjnych, to lepiej użyć AIC.
-:::
+-   Zerowa średnia: `"zero"`
 
-::: {.column width="50%"}
-#### Bayesian Information Criterion (BIC)
-$$
-BIC = -2 \cdot \log(L) + k \cdot \log(n)
-$$
-gdzie $L$ to funkcja wiarygodności, $k$ to liczba parametrów w modelu, a $n$ to liczba obserwacji. Podobnie jak AIC, im mniejsza wartość BIC, tym lepsze dopasowanie modelu.
-
-- Preferuje modele o mniejszej liczbie parametrów, ale karze je bardziej za złożoność.
-- Jeśli zależy nam na lepszym dopasowaniu modelu do danych, to lepiej użyć BIC.
-:::
-
-::::
-
-## Backtesting modelu GARCH(1,1) {.smaller}
-#### Miary
-:::: {.columns}
-
-::: {.column width="50%"}
-#### Mean Absolute Error (MAE)
-$$
-MAE = \frac{1}{n} \sum_{t=1}^{n} |y_t - \hat{y_t}|
-$$
-:::
-
-::: {.column width="50%"}
-#### Root Mean Squared Error (RMSE)
-$$
-RMSE = \sqrt{\frac{1}{n} \sum_{t=1}^{n} (y_t - \hat{y_t})^2}
-$$
-:::
-
-::::
-
-- Wykonujemy prognozę o jeden krok do przodu, a następnie porównujemy prognozowane wartości z rzeczywistymi wartościami. Wykonujemy prognozę na podstawie modelu GARCH(1,1) i obliczamy MAE i RMSE.
-
-```{python}
-#| include: TRUE
-#| echo: TRUE
-
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-
-# Wykonujemy prognozę na 1 krok do przodu
-forecast = model_fit.forecast(horizon=1)
-predicted = forecast.variance.values[-1, :][0]
-actual = googl.iloc[-1]**2
-mae = mean_absolute_error([actual], [predicted])
-rmse = np.sqrt(mean_squared_error([actual], [predicted]))
-print(f'MAE: {mae}')
-print(f'RMSE: {rmse}')
-```
-
-
-
-
-
-
-## ARMA-GARCH w pakiecie R
-```{r}
-#| echo: FALSE
-#| include: FALSE
-
-library(xts)
-library(zoo)
-library(rugarch)
-library(ggplot2)
-library(dplyr)
-```
-```{r}
-#| echo: FALSE
-#| include: FALSE
-
-googl <- read.csv('data/googl.us.txt', header = TRUE, sep = ",")
-googl_xts <- xts(googl[, 5], order.by = as.Date(googl[, 1]))
-log_returns <- diff(log(googl_xts))
-log_returns <- na.omit(log_returns)
-ggplot(log_returns, aes(x = index(log_returns), y = log_returns)) +
-  geom_line() +
-  labs(title = "Log Returns of Google Stock", x = "Date", y = "Log Returns") +
-  theme_minimal()
-```
-
-```{r}
-#| echo: TRUE
-spec <- ugarchspec(mean.model = list(armaOrder = c(0, 0), include.mean = TRUE),
-              variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
-              distribution.model = "norm")
-fit <- ugarchfit(spec, log_returns)
-print(fit)
-```
-```{r}
-ggplot(data.frame(fitted = fit@fit$fitted.values, time = index(log_returns)), aes(x = time, y = fitted)) +
-  geom_line() +
-  labs(title = "Fitted GARCH Model", x = "Date", y = "Fitted Values") +
-  theme_minimal()
-ggplot(data.frame(residuals = fit@fit$residuals, time = index(log_returns)), aes(x = time, y = residuals)) +
-  geom_line() +
-  labs(title = "Residuals of GARCH Model", x = "Date", y = "Residuals") +
-  theme_minimal()
-```
+-   Średnia modelowana jako proces AR: `"AR"` (np. AR(1), AR(2), ...)

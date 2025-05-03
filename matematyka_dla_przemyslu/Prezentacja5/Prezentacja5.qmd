@@ -1,0 +1,198 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+execute: 
+  echo: true
+format:
+  revealjs:
+    theme: serif
+    transition: slide
+    scrollable: true
+    self-contained: true
+title-slide-attributes:
+    data-background-image: "img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+## Powtórzenie
+
+Model GARCH wykorzystywany jest przy modelowaniu i przewidywaniu zmienności w szeregach czasowych. Stosuje się go głównie w analizie finansowej.\
+
+Wzór ogólny
+
+$$
+GARCH(p, q): \sigma_t^2=\omega+\sum_{i=1}^{p}{\alpha_i\epsilon_{t-i}^2} + \sum_{j=1}^{q}{\beta_j\sigma_{t-j}^2}
+$$
+
+Najczęściej omawiany przypadek
+
+$$
+GARCH(1, 1): \sigma_t^2=\omega+{\alpha\epsilon_{t-1}^2} + {\beta\sigma_{t-1}^2}
+$$
+
+$\omega$ - bazowy poziom wariancji warunkowej
+
+$\alpha$ – współczynnik reakcji na nowe informacje (efekt ARCH)
+
+$\beta$ – współczynnik pamięci zmienności (efekt GARCH)
+
+$\epsilon_{t-1}^2$ – kwadrat błędu z kroku $t-1$
+
+$\sigma_{t-1}^2$ – wariancja z kroku $t-1$
+
+```{r setup}
+#| echo: false
+#| warning: false
+#| error: false
+#| output: false
+library(reticulate)
+options(reticulate.python = "/opt/homebrew/bin/python3")
+```
+
+```{python}
+#| echo: false
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from arch import arch_model
+from arch.univariate import SkewStudent
+```
+
+```{python, echo=FALSE, output=FALSE}
+df = pd.read_csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/matematyka_dla_przemyslu/Prezentacja4/Dane - Kaggle/aapl.us.txt')['Close']
+
+# Liczenie zwrotów procentowych
+returns = df.pct_change().dropna()
+
+normal_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 'normal')
+
+gm_result = normal_gm.fit()
+```
+
+## Założenia dotyczące rozkładu standaryzowanych reszt
+
+$$
+\text{reszta} = \epsilon_t = \text{predyktowany zwrot} - \text{średni zwrot}
+$$
+
+$$
+\text{standaryzowana reszta} = \frac{\epsilon_t}{\sigma_t}
+$$
+
+```{python}
+gm_resid = gm_result.resid
+gm_std = gm_result.conditional_volatility
+
+gm_std_resid = gm_resid / gm_std
+```
+
+\
+
+-   Rozkład normalny (domyślna opcja): `"normal"`
+
+-   Rozkład t-Studenta -- grube ogony rozkładu: `"t"`
+
+-   Skośny rozkład t-Studenta -- grube ogony i skośność: `"skewt"`
+
+Implementacja
+
+```{python}
+normal_gm = arch_model(
+  returns, p = 1, q = 1, 
+  mean = 'constant', 
+  vol = 'GARCH', 
+  dist = 'normal'  # założenie o rozkładzie
+  )
+```
+
+```{python, echo=FALSE, output=FALSE}
+normal_resid = np.random.normal(0, 1, len(gm_std_resid))
+
+# tstudent
+t_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 't')
+
+gm_t_result = t_gm.fit()
+
+gm_t_resid = gm_t_result.resid
+gm_t_std = gm_t_result.conditional_volatility
+
+gm_t_std_resid = gm_t_resid /gm_t_std
+
+df_hat = gm_t_result.params['nu']
+t_resid = np.random.standard_t(df=df_hat, size=len(gm_t_std_resid))
+t_resid_scaled = t_resid / np.sqrt(df_hat / (df_hat - 2))
+
+# skośny tstudent
+skewt_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 'skewt')
+
+gm_skewt_result = skewt_gm.fit()
+
+gm_skewt_resid = gm_skewt_result.resid
+gm_skewt_std = gm_skewt_result.conditional_volatility
+
+gm_skewt_std_resid = gm_skewt_resid /gm_skewt_std
+
+df_hat_skewt = gm_skewt_result.params['eta']
+skew_hat = gm_skewt_result.params['lambda']
+
+skewt = SkewStudent()
+f_skew_resid = skewt.simulate((df_hat_skewt, skew_hat))
+skewt_resid = f_skew_resid(len(gm_skewt_std_resid))
+```
+
+---------------------------------------------------------------
+
+### Rozkład normalny standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.hist(normal_resid, bins = 50, 
+         facecolor = 'tomato', label = 'Normal residuals', alpha=0.7)
+plt.legend(loc = 'upper left')
+plt.show()
+```
+
+### Rozkład t--Studenta standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_t_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.hist(t_resid_scaled, bins = 50, 
+         facecolor = 'tomato', label = 't-Student residuals', alpha=0.7)
+plt.legend(loc = 'upper left')
+plt.show()
+```
+
+### Skośny rozkład t--Studenta standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_skewt_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals')
+plt.hist(skewt_resid, bins = 50, 
+         facecolor = 'tomato', label = 'skewt residuals', alpha=0.7)
+plt.legend(loc = 'upper left')
+plt.show()
+```
+
+## Założenia o średniej
+
+-   Stała średnia (domyślna opcja): `"constant"`
+
+-   Zerowa średnia: `"zero"`
+
+-   Średnia modelowana jako proces AR: `"AR"` (np. AR(1), AR(2), ...)
