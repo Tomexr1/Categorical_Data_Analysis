@@ -1,0 +1,477 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+format:
+  revealjs:
+    scrollable: true
+    transition: slide
+    theme: serif
+    self-contained: true
+    header-includes:
+      - |
+        <style>
+          .justified-text {
+            text-align: justify;
+          }
+          .reveal section {
+              padding-right: 30px; /* Dodaj margines po prawej stronie */
+            }
+        </style>
+title-slide-attributes:
+    data-background-image: "img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+---
+
+# Wstęp do modelowania GARCH {.smaller}
+
+Generalized Autoregressive Conditional Heteroskedasticity
+
+(Uogólniony Autoregresyjny Model Warunkowej Heteroskedastyczności)
+
+## Zmienność {.smaller}
+
+::: {style="text-align:center;"}
+Zmienność - statystyczna miara rozproszenia zwrotów z aktywów w czasie, często ich odchylenie standardowe lub wariancja. Opisuje niepewność dotyczącą potencjalnych wahań cen aktywów wchodzących w skład portfela.
+
+![](images/clipboard-2456919170.png){width="60%"}
+:::
+
+## Obliczanie zmienności {.smaller}
+
+```{r}
+#| include: false 
+#| echo: false 
+library(reticulate)
+use_python("C:\\Users\\Oliwia\\AppData\\Local\\Programs\\Python\\Python313\\python.exe", required = TRUE)
+#use_virtualenv("my-python", required = TRUE)
+#virtualenv_create("my-python_pr4", python="C:\\Users\\Oliwia\\AppData\\Local\\Programs\\Python\\Python313\\python.exe")
+#use_virtualenv("my-python_pr4", required = TRUE)
+```
+
+```{python}
+#| include: false 
+#| echo: false 
+from pandas import *
+from numpy import *
+from os import *
+from matplotlib import pyplot as plt
+print(getcwd())
+```
+
+```{python}
+#| include: true 
+#| echo: true
+df = read_csv('googl.us.txt')['Close']
+zwroty_procentowe = df.pct_change()
+zmiennosc = zwroty_procentowe.std()
+```
+
+```{python}
+#| include: true 
+#| echo: true 
+print(zmiennosc)
+```
+
+Zmienność miesięczna:
+
+```{python}
+#| include: true 
+#| echo: true 
+zmiennosc_miesieczna = zmiennosc*sqrt(21)
+```
+
+```{python}
+#| include: true 
+#| echo: true 
+print(zmiennosc_miesieczna)
+```
+
+Zmienność roczna:
+
+```{python}
+#| include: true  
+#| echo: true  
+zmiennosc_roczna = zmiennosc*sqrt(252)
+```
+
+```{python}
+#| include: true  
+#| echo: true  
+print(zmiennosc_roczna)
+```
+
+## Problem z modelowaniem zmienności {.smaller}
+
+::: {style="text-align:center;"}
+Typowym założeniem w modelowaniu szeregów czasowych jest stałość zmienności w czasie. Jednak w danych finansowych często występuje heteroskedastyczność, czyli „różna rozproszenie” — zmienność rośnie lub maleje w sposób systematyczny.
+
+![](images/clipboard-2723012081.png){width="70%"}
+:::
+
+# Klastrowanie zmienności {.smaller}
+
+```{python}
+#| fig-align: "center"
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Wczytanie danych
+df = pd.read_csv('googl.us.txt')['Close']
+
+# Liczenie zwrotów procentowych
+returns = df.pct_change().dropna()
+
+# Wyznacz próg — np. mediana bezwzględnej różnicy pomiędzy kolejnymi zmianami procentowymi
+returns_diff = returns.diff().dropna()  # Różnica pomiędzy kolejnymi zwrotami
+threshold = returns_diff.abs().quantile(0.95)  # 95. percentyl różnic
+
+# Tworzenie wykresu
+plt.figure(figsize=(14, 6))
+plt.plot(returns.index, returns, label='Zwroty procentowe', color='gray', alpha=0.5)
+
+# Kolorowanie obszarów — wysoka zmienność (duże skoki różnic pomiędzy zwrotami)
+for i in range(1, len(returns)-1):
+    if abs(returns_diff.iloc[i]) > threshold:
+        plt.axvspan(returns.index[i-1], returns.index[i], color='red', alpha=0.3)  # Wysokie skoki zmienności
+
+plt.title('Klastrowanie zmienności — GOOGL (95. percentyl skoków między zwrotami)')
+plt.xlabel('Data')
+plt.ylabel('Zwrot dzienny')
+plt.legend()
+plt.show()
+
+
+```
+
+# ARCH
+
+-   Auto Regressive Conditional Heteroskedasticity (~~Uogólniony~~ Autoregresyjny Model Warunkowej Heteroskedastyczności)
+
+-   Robert F. Engle (laureat Nagrody Nobla 2003)
+
+    ::: {style="text-align:center;"}
+    ![](images/clipboard-2783432341.png)
+    :::
+
+------------------------------------------------------------------------
+
+## Wprowadzenie do ARCH
+
+### Biały szum
+
+Biały szum (ang. *White Noise*) to proces losowy, w którym:
+
+-   wartości mają średnią równą zero,
+-   wariancja jest stała: $\sigma^2$,
+-   brak autokorelacji: obserwacje są niezależne w czasie.
+
+Formalnie:
+
+$$
+E(\epsilon_t) = 0
+$$
+
+$$
+Var(\epsilon_t) = \sigma^2
+$$
+
+$$
+Cov(\epsilon_t, \epsilon_{t-h}) = 0 \quad \text{dla} \quad h \neq 0
+$$
+
+::: {style="text-align:center;"}
+![](images/clipboard-482193256.png){width="80%"}
+:::
+
+### Residua
+
+Resztę modelu (residuum) oznaczamy jako $\epsilon_t$. Jest to składnik losowy w modelu, który opisuje różnicę pomiędzy wartością rzeczywistą a wartością przewidywaną:
+
+$$
+y_t = \hat{y}_t + \epsilon_t
+$$
+
+gdzie:
+
+-   $y_t$ — obserwowana wartość w chwili $t$,
+-   $\hat{y}_t$ — wartość prognozowana przez model,
+-   $\epsilon_t$ — residuum, czyli błąd modelu.
+
+------------------------------------------------------------------------
+
+## Notacja
+
+Zakładamy, że w chwili $t$ chcemy przewidzieć zwrot $r_t$, korzystając z informacji dostępnych do momentu $t-1$.
+
+Przewidywany zwrot to wartość oczekiwana (średnia) $\mu_t$, więc model zapisujemy jako:
+
+$$
+r_t = \mu_t + \epsilon_t
+$$
+
+gdzie:
+
+-   $r_t$ — rzeczywisty zwrot w chwili $t$,
+-   $\mu_t$ — przewidywany zwrot (średnia) w chwili $t$,
+-   $\epsilon_t$ — residuum, czyli błąd prognozy.
+
+Podobnie możemy modelować zmienność w chwili $t$ jako oczekiwaną wariancję na podstawie informacji z momentu $t-1$.
+
+Zmienność nie jest bezpośrednio obserwowalna, ale jest powiązana z błędem prognozy:
+
+$$
+\epsilon_t = \sigma_t z_t
+$$
+
+gdzie:
+
+-   $\sigma_t$ — prognozowana zmienność w chwili $t$,
+-   $z_t$ — losowa zmienna z procesu białego szumu.
+
+## Równania modelu ARCH
+
+$$
+ARCH(p): \sigma_t^2=\omega+\sum_{i=1}^{p}{\alpha_i\epsilon_{t-i}^2}
+$$
+
+$$ p \text{ - lag}$$
+
+W skrócie: wariancja to ważona średnia poprzednich residuuów aż do lagu p. Stąd:
+
+$$
+ARCH(1): \sigma_t^2=\omega+{\alpha\epsilon_{t-1}^2}
+$$
+
+## Równania modelu GARCH
+
+$$
+GARCH(p, q): \sigma_t^2=\omega+\sum_{i=1}^{p}{\alpha_i\epsilon_{t-i}^2} + \sum_{j=1}^{q}{\beta_j\sigma_{t-j}^2}
+$$ Uwzględnia nie tylko kwadraty błędów z przeszłości (jak w ARCH), ale także przeszłe wartości wariancji ($\sigma^2$), co pozwala na modelowanie zmienności jako funkcji zarówno błędów, jak i poprzednich wariancji.
+
+$$
+GARCH(1, 1): \sigma_t^2=\omega+{\alpha\epsilon_{t-1}^2} + {\beta\sigma_{t-1}^2}
+$$
+
+## Warunki poprawności GARCH(1,1)
+
+-   Wszystkie parametry muszą być nieujemne: $$ \omega \geq 0, \alpha \geq 0, \beta \geq 0 $$\
+    → zapewnia dodatnią wariancję
+
+-   Musi być spełnione: $$ \alpha + \beta < 1 $$\
+    → zapewnia powrót do średniej
+
+------------------------------------------------------------------------
+
+## Wariancja długookresowa
+
+Model:\
+$$
+\sigma_t^2 = \omega + \alpha \varepsilon_{t-1}^2 + \beta \sigma_{t-1}^2
+$$
+
+Dla stanu ustalonego (stacjonarność):\
+$$
+E[\sigma_t^2] = E[\sigma_{t-1}^2] = \sigma^2,\quad E[\varepsilon_{t-1}^2] = \sigma^2
+$$
+
+Podstawiamy do wzoru:\
+$$
+\sigma^2 = \omega + \alpha \sigma^2 + \beta \sigma^2 \\
+\sigma^2 (1 - \alpha - \beta) = \omega
+$$
+
+Ostatecznie:\
+$$
+\sigma^2 = \frac{\omega}{1 - \alpha - \beta}
+$$
+
+## Dynamika modelu GARCH(1,1)
+
+-   Im większe ( $\alpha$ ), tym **silniejszy natychmiastowy wpływ szoku** (reszty, błędu predykcji)
+
+-   Dla ustalonego ( $\alpha$ ), im większe ( $\beta$ ), tym **dłużej utrzymuje się efekt szoku**\
+    → okresy wysokiej lub niskiej zmienności mają tendencję do utrzymywania się (persistencja)
+
+### Intuicja:
+
+-   ( $\alpha$ ): szybkość reakcji na nowe informacje
+-   ( $\beta$ ): pamięć zmienności
+
+## Porównanie
+
+```{python}
+#| fig-align: "center"
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+def simulate_garch(n, omega, alpha, beta):
+    """
+    Funkcja do symulacji procesu GARCH(1,1)
+    
+    Parameters:
+    - n (int): liczba obserwacji
+    - omega (float): parametr omega (stała wariancji)
+    - alpha (float): parametr alpha (współczynnik dla opóźnionych kwadratów reszt)
+    - beta (float): parametr beta (współczynnik dla opóźnionej wariancji)
+    
+    Returns:
+    - resids (np.array): szereg czasowy reszt (epsilon_t)
+    - variance (np.array): szereg czasowy wariancji (sigma_t^2)
+    """
+    # Inicjalizacja tablic
+    resids = np.zeros(n)        # Reszty modelu (szereg czasowy)
+    variance = np.zeros(n)      # Wariancja w czasie (szereg czasowy)
+    
+    # Inicjalne wartości (zakładając brak szoków początkowych)
+    variance[0] = 0
+    
+    # Symulacja procesu GARCH(1,1)
+    for t in range(1, n):
+        # Wariancja w danym czasie t
+        variance[t] = omega + alpha * resids[t-1]**2 + beta * variance[t-1]
+        
+        # Symulacja reszty (szoku)
+        resids[t] = np.random.normal(0, np.sqrt(variance[t]))  # Normalny rozkład z odchyleniem std = sqrt(variance)
+    
+    return resids, variance
+
+n = 200
+sim1 = simulate_garch(n=n, omega=1, alpha=0.6, beta=0.2)
+sim2 = simulate_garch(n=n, omega=1, alpha=0.1, beta=0.85)
+
+plt.figure(figsize=(12, 5))
+plt.plot(sim1[1], label="alpha=0.6, beta=0.2")
+plt.plot(sim2[1], label="alpha=0.1, beta=0.85")
+plt.legend()
+plt.title("Porównanie wariancji GARCH(1,1)")
+plt.grid(True)
+plt.show()
+```
+
+```{python}
+#| fig-align: "center"
+plt.figure(figsize=(12, 5))
+plt.plot(sim1[0], label="alpha=0.6, beta=0.2", alpha=0.6)
+plt.plot(sim2[0], label="alpha=0.1, beta=0.85", alpha=0.6)
+plt.legend()
+plt.title("Porównanie residuów GARCH(1,1)")
+plt.grid(True)
+plt.show()
+
+```
+
+# Implementacja w Pythonie
+
+-   **Specyfikacja modelu** – Zdefiniowanie założeń modelu GARCH (np. wybór rzędu, parametrów).
+
+-   **Dopasowanie modelu** – Estymacja parametrów modelu na podstawie danych.
+
+-   **Prognozowanie** – Wykorzystanie dopasowanego modelu do przewidywania przyszłych wartości wariancji lub szoków.
+
+## Specyfikacja modelu GARCH
+
+Model GARCH wymaga zdefiniowania kilku kluczowych założeń.
+
+W bibliotece `arch` w Pythonie sprowadza się to do trzech głównych decyzji:
+
+### 1. Rozkład reszt
+
+-   Domyślnie: `"normal"`
+-   Inne opcje:
+    -   `"t"` – rozkład Studenta
+    -   `"skewt"` – skośny rozkład Studenta
+    -   inne bardziej zaawansowane opcje
+
+### 2. Model średniej
+
+-   Domyślnie: `"constant"` – stała średnia\
+-   Inne możliwości:
+    -   `"zero"` – zakłada średnią równą zeru
+    -   `"AR"` – model autoregresyjny (np. AR(1), AR(2))
+
+### 3. Model zmienności
+
+-   Domyślnie: `"GARCH"` – najczęściej stosowany model zmienności\
+-   Inne opcje:
+    -   `"ARCH"`
+    -   `"EGARCH"`, `"HARCH"`, `"FIGARCH"` itd.
+
+## Przykładowa specyfikacja
+
+```{python}
+#| include: true
+#| echo: true
+from arch import arch_model
+dane = returns
+podstawowy_model = arch_model(dane, 
+                              p = 1, 
+                              q = 1, 
+                              mean = 'constant', 
+                              vol = 'GARCH', 
+                              dist = 'normal')
+```
+
+## Dopasowanie modelu
+
+```{python}
+#| include: true
+#| echo: true
+#| warning: false
+dopasowanie = podstawowy_model.fit(disp='off')
+print(dopasowanie.summary())
+```
+
+## Prognozowanie
+
+```{python}
+#| include: true
+#| echo: true
+#| warning: false
+prognoza = dopasowanie.forecast(horizon = 5)
+print(prognoza.variance)
+```
+
+# Zastosowania poza finansami
+
+## Modelowanie przepływu rzek
+
+::: {style="text-align:center;"}
+![](images/clipboard-3739344483.png)
+:::
+
+## Modelowanie prędkości wiatru {.smaller}
+
+::: {style="text-align:center;"}
+![](images/clipboard-3384586635.png)
+:::
+
+## Prognozowanie zmienności cen eksportu upraw
+
+::: {style="text-align:center;"}
+![](images/clipboard-3811931254.png)
+:::
+
+## Modelowanie zmienności opini publicznej
+
+::: {style="text-align:center;"}
+![](images/clipboard-1864440860.png)
+:::
+
+# Źródła
+
+1.  [**Learn Heteroskedasticity in 2 minutes**](https://medium.com/riga-data-science-club/learn-heteroskedasticity-in-1-minute-42f678911389)\
+    Dmitry Yemelyanov, Medium.com
+
+2.  [**White Noise**](https://en.wikipedia.org/wiki/White_noise)\
+    Wikipedia, White Noise
+
+3.  [**Autoregressive conditionalheteroskedasticity**](https://en.wikipedia.org/wiki/Autoregressive_conditional_heteroskedasticity)\
+    Wikipedia, Autoregressive conditionalheteroskedasticity
+
+4.  [**GARCH Model: Definition and Uses in Statistics**](https://www.investopedia.com/terms/g/garch.asp#:~:text=GARCH%20is%20a%20statistical%20modeling,an%20autoregressive%20moving%20average%20process.)\
+    Investopedia, Erika Rasure
