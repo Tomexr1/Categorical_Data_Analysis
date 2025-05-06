@@ -236,3 +236,50 @@ pi1 <- t[1, 1] / sum(t[, 1])
 pi2 <- t[2, 1] / sum(t[, 2])
 pi1
 pi2
+
+
+# zad dodatkowe 1
+dCor_pvalue <- function(x, y) {
+  
+  dCor <- function(x, y) {
+    observed <- table(x, y)
+    total <- sum(observed)
+    
+    probs <- prop.table(observed)
+    row_probs <- rowSums(probs)
+    col_probs <- colSums(probs)
+    
+    numerator <- 0
+    
+    for (i in 1:nrow(observed)) {
+      for (j in 1:ncol(observed)) {
+        numerator <- numerator + (probs[i, j] - row_probs[i] * col_probs[j])^2
+      }
+    }
+    numerator <- sqrt(numerator)
+    
+    denominator <- (sum(row_probs^2 * (sum(row_probs^2) + 1)) - 2*sum(row_probs^3))^0.25*
+      (sum(col_probs^2 * (sum(col_probs^2) + 1)) - 2*sum(col_probs^3))^0.25
+    return(numerator / denominator)
+  }
+  
+  statistic <- dCor(x, y)
+  
+  for (i in 1:1000) {
+    x_perm <- sample(x)
+    y_perm <- sample(y)
+    
+    statistic_perm <- dCor(x_perm, y_perm)
+    
+    if (statistic_perm >= statistic) {
+      p_value <- (i + 1) / 1000
+      break
+    }
+  }
+  return(p_value)
+}
+
+x <- ankieta$PYT_2
+y <- ankieta$CZY_KIER
+dCor_pvalue(ankieta$PYT_2, ankieta$CZY_KIER)
+

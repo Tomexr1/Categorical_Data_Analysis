@@ -1,0 +1,521 @@
+---
+title: "Matematyczne modelowanie procesów decyzyjnych w finansach"
+author: "Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak"
+execute: 
+  echo: true
+format:
+  revealjs:
+    theme: serif
+    transition: slide
+    scrollable: true
+    self-contained: true
+title-slide-attributes:
+    data-background-image: "img_prezentacja2.jpg"
+    data-background-size: cover
+    data-background-opacity: "0.65"
+    data-background-color: "#000000"
+jupyter: python3
+---
+
+```{r}
+# library(reticulate)
+# use_condaenv("/Users/tomasz/opt/anaconda3/bin/python", required = TRUE)
+```
+
+## Powtórzenie
+
+Model GARCH wykorzystywany jest przy modelowaniu i przewidywaniu zmienności w szeregach czasowych. Stosuje się go głównie w analizie finansowej.\
+
+Wzór ogólny
+
+$$
+GARCH(p, q): \sigma_t^2=\omega+\sum_{i=1}^{p}{\alpha_i\epsilon_{t-i}^2} + \sum_{j=1}^{q}{\beta_j\sigma_{t-j}^2}
+$$
+
+Najczęściej omawiany przypadek
+
+$$
+GARCH(1, 1): \sigma_t^2=\omega+{\alpha\epsilon_{t-1}^2} + {\beta\sigma_{t-1}^2}
+$$
+
+$\omega$ - bazowy poziom wariancji warunkowej
+
+$\alpha$ – współczynnik reakcji na nowe informacje (efekt ARCH)
+
+$\beta$ – współczynnik pamięci zmienności (efekt GARCH)
+
+$\epsilon_{t-1}^2$ – kwadrat błędu z kroku $t-1$
+
+$\sigma_{t-1}^2$ – wariancja z kroku $t-1$
+
+```{r setup}
+#| echo: false
+#| warning: false
+#| error: false
+#| output: false
+# library(reticulate)
+# options(reticulate.python = "/opt/homebrew/bin/python3")
+```
+
+```{python}
+#| echo: false
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from arch import arch_model
+from arch.univariate import SkewStudent
+```
+
+```{python, echo=FALSE, output=FALSE}
+df = pd.read_csv('aapl.us.txt')['Close']
+
+# Liczenie zwrotów procentowych
+returns = df.pct_change().dropna()
+
+normal_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 'normal')
+
+gm_result = normal_gm.fit()
+```
+
+## Założenia dotyczące rozkładu standaryzowanych reszt
+
+$$
+\text{reszta} = \epsilon_t = \text{predyktowany zwrot} - \text{średni zwrot}
+$$
+
+$$
+\text{standaryzowana reszta} = \frac{\epsilon_t}{\sigma_t}
+$$
+
+```{python}
+gm_resid = gm_result.resid
+gm_std = gm_result.conditional_volatility
+
+gm_std_resid = gm_resid / gm_std
+```
+
+\
+
+-   Rozkład normalny (domyślna opcja): `"normal"`
+
+-   Rozkład t-Studenta -- grube ogony rozkładu: `"t"`
+
+-   Skośny rozkład t-Studenta -- grube ogony i skośność: `"skewt"`
+
+Implementacja
+
+```{python}
+normal_gm = arch_model(
+  returns, p = 1, q = 1, 
+  mean = 'constant', 
+  vol = 'GARCH', 
+  dist = 'normal'  # założenie o rozkładzie
+  )
+```
+
+```{python, echo=FALSE, output=FALSE}
+normal_resid = np.random.normal(0, 1, len(gm_std_resid))
+
+# tstudent
+t_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 't')
+
+gm_t_result = t_gm.fit()
+
+gm_t_resid = gm_t_result.resid
+gm_t_std = gm_t_result.conditional_volatility
+
+gm_t_std_resid = gm_t_resid /gm_t_std
+
+df_hat = gm_t_result.params['nu']
+t_resid = np.random.standard_t(df=df_hat, size=len(gm_t_std_resid))
+t_resid_scaled = t_resid / np.sqrt(df_hat / (df_hat - 2))
+
+# skośny tstudent
+skewt_gm = arch_model(returns, p = 1, q = 1, 
+mean = 'constant', 
+vol = 'GARCH', 
+dist = 'skewt')
+
+gm_skewt_result = skewt_gm.fit()
+
+gm_skewt_resid = gm_skewt_result.resid
+gm_skewt_std = gm_skewt_result.conditional_volatility
+
+gm_skewt_std_resid = gm_skewt_resid /gm_skewt_std
+
+df_hat_skewt = gm_skewt_result.params['eta']
+skew_hat = gm_skewt_result.params['lambda']
+
+skewt = SkewStudent()
+f_skew_resid = skewt.simulate((df_hat_skewt, skew_hat))
+skewt_resid = f_skew_resid(len(gm_skewt_std_resid))
+```
+
+---------------------------------------------------------------
+
+### Rozkład normalny standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals', density=True)
+plt.hist(normal_resid, bins = 50, 
+         facecolor = 'tomato', label = 'Normal residuals', alpha=0.7, density=True)
+plt.legend(loc = 'upper left')
+plt.show()
+```
+
+### Rozkład t--Studenta standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_t_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals', density=True)
+plt.hist(t_resid_scaled, bins = 50, 
+         facecolor = 'tomato', label = 't-Student residuals', alpha=0.7, density=True)
+plt.legend(loc = 'upper left')
+plt.show()
+```
+
+### Skośny rozkład t--Studenta standaryzowanych reszt
+
+```{python, echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.hist(gm_skewt_std_resid, bins = 50, 
+         facecolor = 'orange', label = 'Standardized residuals', density=True)
+plt.hist(skewt_resid, bins = 50, 
+         facecolor = 'tomato', label = 'skewt residuals', alpha=0.7, density=True)
+plt.legend(loc = 'upper left')
+plt.show()
+```
+
+## Założenia o średniej
+
+-   Stała średnia (domyślna opcja): `"constant"`
+
+-   Zerowa średnia: `"zero"`
+
+-   Średnia modelowana jako proces AR: `"AR"` (np. AR(1), AR(2), ...)
+
+
+## Ocena wydajności modelu
+
+
+
+## Testowanie istotności parametrów {.smaller}
+#### Test t-Studenta
+Dla każdego parametru $\theta_i$ modelu GARCH przeprowadzamy test istotności, aby sprawdzić, czy jego wartość jest statystycznie różna od zera. W tym celu używa się testu t-Studenta, który sprawdza hipotezę zerową
+$$
+H_0: \theta_i = 0,
+$$
+przeciwko 
+$$
+H_1: \theta_i \neq 0.
+$$
+Statystyką testową jest
+$$
+t_i = \frac{\hat{\theta_i}}{SE(\hat{\theta_i})},
+$$
+gdzie $\hat{\theta_i}$ to oszacowana wartość parametru, a $SE(\hat{\theta_i})$ to jego błąd standardowy. Asymptotycznie $t_i$ ma rozkład normalny, więc wykonujemy sprawdzenie
+$$ 
+|t_i| > z_{1-\alpha/2},
+$$
+gdzie $z_{1-\alpha/2}$ to kwantyl rozkładu normalnego standardowego dla poziomu istotności $\alpha$.
+
+Alternatywnie, możemy patrzeć na poziom krytyczny $p$-value, który jest obliczany jako
+$$
+p = 2 \cdot (1 - \Phi(|t_i|)),
+$$
+gdzie $\Phi$ to funkcja dystrybuanty rozkładu normalnego. Jeśli $p < \alpha$, to odrzucamy hipotezę zerową i uznajemy, że parametr jest istotny statystycznie.
+
+- W praktyce, zazwyczaj, gdy $|t_i| > 2$, to możemy uznać, że parametr jest istotny na poziomie $\alpha = 0.05$.
+
+## Testowanie istotności parametrów {.smaller}
+#### Istotność parametrów dla modelu GARCH(1,1) 
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from arch import arch_model
+```
+
+- Wczytujemy dane i obliczamy logarytmiczne stopy zwrotu z akcji Google. Wykres logarytmicznych stóp zwrotu przedstawia zmienność cen akcji w czasie.
+
+```{python}
+#| include: TRUE
+#| echo: TRUE
+aapl = pd.read_csv('aapl.us.txt', index_col=0)
+aapl['return'] = aapl['Close'].pct_change()
+aapl = aapl['return']
+aapl.index = pd.to_datetime(aapl.index, format='%Y-%m-%d')
+aapl.dropna(inplace=True)
+
+aapl.plot(title='Returns of Apple Stock', figsize=(14, 4))
+```
+
+- Dopasowujemy model.
+
+```{python}
+#| include: TRUE
+#| echo: TRUE
+model = arch_model(aapl, p = 1, q = 1, mean = 'constant', vol = 'GARCH', dist = 't')
+model_fit = model.fit(disp='off', cov_type = 'robust')
+
+model_fit.summary()
+```
+
+## Testowanie istotności parametrów {.smaller}
+#### Maximum Likelihood Estimation (MLE)
+Mamy model GARCH(1,1) z rozkładem normalnym:
+$$
+r_t = \mu + \epsilon_t, \\
+\epsilon_t = \sigma_t \cdot z_t, \\
+\sigma_t^2 = \omega + \alpha \cdot \epsilon_{t-1}^2 + \beta \cdot \sigma_{t-1}^2, \\
+z_t \sim iid \, N(0, 1).
+$$
+
+Wiemy, że $r_t|\mathcal{F}_{t-1} \sim N(\mu, \sigma_t^2)$, czyli mozemy napisać funkcję gęstości prawdopodobieństwa:
+$$
+f(r_t|\mathcal{F}_{t-1};\theta) = \frac{1}{\sqrt{2\pi\sigma_t^2}} \exp\left(-\frac{(r_t - \mu)^2}{2\sigma_t^2}\right),
+$$
+gdzie $\theta = (\mu, \omega, \alpha, \beta)$ to wektor parametrów modelu. Wtedy funkcja wiarygodności to iloczyn funkcji gęstości prawdopodobieństwa dla wszystkich obserwacji:
+$$
+L(\theta|\textbf{r}) = \prod_{t=1}^{T} \frac{1}{\sqrt{2\pi\sigma_t^2}} \exp\left(-\frac{(r_t - \mu)^2}{2\sigma_t^2}\right).
+$$
+Logarytmujemy funkcję wiarygodności, aby uzyskać funkcję log-wiarygodności:
+$$
+\ln L(\theta|\textbf{r}) = -\frac{T}{2} \log(2\pi) - \frac{1}{2} \sum_{t=1}^{T} \ln(\sigma_t^2) - \frac{1}{2} \sum_{t=1}^{T} \frac{(r_t - \mu)^2}{\sigma_t^2}.
+$$
+Wartości $\sigma_t^2$ są wyznaczane rekurencyjnie z modelu GARCH(1,1), czyli np. dla $t=1$ mamy
+$$
+\sigma_1^2 = \omega + \alpha \cdot \epsilon_{0}^2 + \beta \cdot \sigma_{0}^2,
+$$
+dla $t=2$ mamy
+$$
+\sigma_2^2 = \omega + \alpha \cdot \epsilon_{1}^2 + \beta \cdot \sigma_{1}^2 = \omega + \alpha \cdot (r_1 - \mu)^2 + \beta \cdot \sigma_{1}^2.
+$$
+Jako warunki początkowe wybiera się $\sigma_0^2 = \frac{\omega}{1-\alpha-\beta}$ albo $\sigma_0^2 = \text{wariancja próbkowa }r_t$ oraz $\epsilon_0 = 0$.
+
+Czyli maksymalizujemy wektor
+$$
+S(\theta|\textbf{r}) = \begin{pmatrix}
+\frac{\partial \ln L}{\partial \mu} \\ \frac{\partial \ln L}{\partial \omega} \\ \frac{\partial \ln L}{\partial \alpha} \\ \frac{\partial \ln L}{\partial \beta}
+\end{pmatrix}.
+$$
+Następnie, aby znaleźć wartości parametrów, które maksymalizują funkcję wiarygodności, musimy użyć numeryki, ponieważ nie ma prostego analitycznego rozwiązania.
+
+#### Macierz kowariancji
+- Żeby obliczyć błędy standardowe estymatorów, musimy znaleźć macierz kowariancji. Możemy to zrobić na podstawie drugiej pochodnej funkcji log-wiarygodności, czyli macierzy Hessego:
+$$
+\text{Cov}_{\text{MLE}}(\hat{\theta}) = (-\textbf{H})^{-1}=\left[-\frac{\partial^2 \ln L}{\partial \theta_i \partial \theta_j}\right]^{-1} = \left[\begin{pmatrix}
+\frac{\partial^2 \ln L}{\partial \mu^2} & \frac{\partial^2 \ln L}{\partial \mu \partial \omega} & \frac{\partial^2 \ln L}{\partial \mu \partial \alpha} & \frac{\partial^2 \ln L}{\partial \mu \partial \beta} \\
+\frac{\partial^2 \ln L}{\partial \omega \partial \mu} & \frac{\partial^2 \ln L}{\partial \omega^2} & \frac{\partial^2 \ln L}{\partial \omega \partial \alpha} & \frac{\partial^2 \ln L}{\partial \omega \partial \beta} \\
+\frac{\partial^2 \ln L}{\partial \alpha \partial \mu} & \frac{\partial^2 \ln L}{\partial \alpha \partial \omega} & \frac{\partial^2 \ln L}{\partial \alpha^2} & \frac{\partial^2 \ln L}{\partial \alpha \partial \beta} \\
+\frac{\partial^2 \ln L}{\partial \beta \partial \mu} & \frac{\partial^2 \ln L}{\partial \beta \partial \omega} & \frac{\partial^2 \ln L}{\partial \beta \partial \alpha} & \frac{\partial^2 \ln L}{\partial \beta^2}
+\end{pmatrix}\right]^{-1}
+$$
+- Odwracana macierz to macierz informacji Fishera (ujemna macierz Hessego).
+- Jest to asymptotyczny estymator macierzy kowariancji parametrów modelu.
+- Zakłada, że model i założony rozkład residuów są poprawne.
+
+#### Robust Covariance Matrix (Bollerslev-Wooldridge)
+- W przypadku modelu GARCH(1,1) z rozkładem normalnym, możemy użyć estymacji błędów standardowych Bollerslev-Wooldridge'a, które są bardziej odporne na heteroskedastyczność i autokorelację w resztach modelu. Ta macierz kowariancji ma postać
+$$
+\text{Cov}_{\text{BW}}(\hat{\theta}) = (-\textbf{H})^{-1} \cdot \textbf{J} \cdot (-\textbf{H})^{-1},
+$$
+gdzie $\textbf{H}$ to macierz Hessego zdefiniowana jak wyżej, a $\textbf{J} = \sum_{t=1}^T \frac{\partial \ell}{\partial \theta} \cdot \frac{\partial \ell}{\partial \theta}^T$ i $\ell_t(\theta) = \frac{1}{2}\ln(2\pi)-\frac{1}{2}\ln\sigma_t^2-\frac{1}{2}\frac{(r_t-\mu)^2}{\sigma_t^2}$ to logarytm wiarygodności w punkcie $t$.
+
+- Jeśli residua są leptokutyczne albo mają warunkową heteroskedastyczność, gradienty będą uwzględniały dodatkową zmienność.
+- Ta metoda jest przydatna jeśli residua nie są gaussowskie.
+
+#### Obliczenie błędów standardowych
+Szuakane błędy standardowe estymowanych parametrów to pierwiastki kolejnych elementów na przekątnej macierzy kowariancji, czyli
+$$
+\text{SE}(\hat{\theta_i}) = \sqrt{\text{Cov}(\hat{\theta})_{ii}}.
+$$
+
+## Walidacja założeń modelu {.smaller}
+#### Wykres residuów
+
+- Szukamy wzorców w resztach modelu, które mogą sugerować, że model nie jest odpowiedni. Wykresy residuów powinny być losowe i nie wykazywać żadnych wyraźnych wzorców.
+- Zgodnie z założeniami reszty powinny być z rozkładu normalnego, widać jednak często występujące ekstremalne wartości.
+
+
+```{python}
+fig, ax = plt.subplots(2, 1, figsize=(14, 6))
+ax[0].plot(model_fit.std_resid)
+ax[0].set_title('Standardized Residuals of GARCH(1,1) Model')
+ax[1].hist(model_fit.std_resid, bins=30, density=True)
+x = np.linspace(-4, 4, 100)
+ax[1].plot(x, (1/np.sqrt(2*np.pi)) * np.exp(-0.5*x**2), 'r', lw=2, label='N(0,1)')
+
+from scipy.stats import t
+nu = model_fit.params['nu']
+ax[1].plot(x, t.pdf(x, df=nu)*np.sqrt(nu/(nu-2)), 'g', lw=2, label='t-distribution')
+ax[1].legend()
+ax[1].set_xlim(-4, 4)
+ax[1].set_title('Histogram of Standardized Residuals')
+ax[1].set_xlabel('Residuals')
+ax[1].set_ylabel('Density')
+plt.tight_layout()
+plt.show()
+```
+
+## Walidacja założeń modelu {.smaller}
+#### Autokorelacja residuów - ACF
+```{python}
+#| include: TRUE
+#| echo: TRUE
+from statsmodels.graphics.tsaplots import plot_acf
+
+fig, ax = plt.subplots(1, 1, figsize=(14, 4))
+plot_acf(model_fit.std_resid, lags=40, ax=ax, alpha=0.05)
+ax.set_title('ACF of Standardized Residuals')
+plt.show()
+```
+
+## Walidacja założeń modelu {.smaller}
+#### Test Ljung-Boxa
+Test Ljung-Boxa sprawdza, czy reszty modelu są niezależne. Hipotezy testowe są następujące:
+$$
+H_0: \text{reszty są niezależne} \\
+H_1: \text{reszty są skorelowane}.
+$$
+Robimy wykres $p$-value dla różnych opóźnień $h$.
+```{python}
+#| include: TRUE
+#| echo: TRUE
+from statsmodels.stats.diagnostic import acorr_ljungbox
+
+
+ljung_box = acorr_ljungbox(model_fit.std_resid, return_df=True)
+ljung_box['lb_pvalue'].plot(title='Ljung-Box Test p-values', figsize=(14, 4), style='.')
+plt.axhline(y=0.05, color='r', linestyle='--')
+plt.xlabel('Lag')
+plt.ylabel('p-value')
+plt.show()
+```
+
+## Miary dopasowania modelu {.smaller}
+:::: {.columns}
+
+::: {.column width="50%"}
+#### Akaike Information Criterion (AIC)
+$$
+AIC = -2 \cdot \log(L) + 2 \cdot k
+$$
+gdzie $L$ to funkcja wiarygodności, a $k$ to liczba parametrów w modelu. Im mniejsza wartość AIC, tym lepsze dopasowanie modelu.
+
+- Preferuje modele o mniejszej liczbie parametrów, ale nie karze ich zbytnio za złożoność.
+- Jeśli zależy nam na lepszych zdolnościach predykcyjnych, to lepiej użyć AIC.
+- AIC dla naszego modelu wynosi `{python} round(model_fit.aic, 2)`.
+:::
+
+::: {.column width="50%"}
+#### Bayesian Information Criterion (BIC)
+$$
+BIC = -2 \cdot \log(L) + k \cdot \log(n)
+$$
+gdzie $L$ to funkcja wiarygodności, $k$ to liczba parametrów w modelu, a $n$ to liczba obserwacji. Podobnie jak AIC, im mniejsza wartość BIC, tym lepsze dopasowanie modelu.
+
+- Preferuje modele o mniejszej liczbie parametrów, ale karze je bardziej za złożoność.
+- Jeśli zależy nam na lepszym dopasowaniu modelu do danych, to lepiej użyć BIC.
+- BIC dla naszego modelu wynosi `{python} round(model_fit.bic, 2)`.
+:::
+
+::::
+#### Manulalne obliczenie AIC i BIC
+```{python}
+#| include: TRUE
+#| echo: TRUE
+
+aic = -2 * model_fit.loglikelihood + 2 * len(model_fit.params)
+bic = -2 * model_fit.loglikelihood + len(model_fit.params) * np.log(len(model_fit.resid))
+print(f'AIC: {aic}')
+print(f'BIC: {bic}')
+```
+## Backtesting modelu GARCH(1,1) {.smaller}
+#### Miary
+:::: {.columns}
+
+::: {.column width="50%"}
+#### Mean Absolute Error (MAE)
+$$
+MAE = \frac{1}{n} \sum_{t=1}^{n} |y_t - \hat{y_t}|
+$$
+:::
+
+::: {.column width="50%"}
+#### Root Mean Squared Error (RMSE)
+$$
+RMSE = \sqrt{\frac{1}{n} \sum_{t=1}^{n} (y_t - \hat{y_t})^2}
+$$
+:::
+
+::::
+
+- Wykonujemy prognozę o jeden krok do przodu, a następnie porównujemy prognozowane wartości z rzeczywistymi wartościami. Wykonujemy prognozę na podstawie modelu GARCH(1,1) i obliczamy MAE i RMSE.
+```{python}
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+test = aapl[-20:]
+predicted_vol = np.zeros((test.shape[0], 3))
+predicted_mean = np.zeros((test.shape[0], 3))
+dists = ['normal', 't', 'skewt']
+for i in range(20):
+  for dist in dists:
+    train = aapl[:-(test.shape[0]-i)]
+    model = arch_model(train, p=1, q=1, mean='constant', vol='GARCH', dist=dist, rescale=False)
+    model_fit = model.fit(disp='off')
+    forecast = model_fit.forecast(horizon=1, reindex=True)
+    predicted_vol[i, dists.index(dist)] = forecast.variance.values[-1, :][0]
+    predicted_mean[i, dists.index(dist)] = forecast.mean.values[-1, :][0]
+
+pd.DataFrame({
+    'MAE': [
+      mean_absolute_error(test-predicted_mean[:, 0], predicted_vol[:, 0]),
+      mean_absolute_error(test-predicted_mean[:, 1], predicted_vol[:, 1]),
+      mean_absolute_error(test-predicted_mean[:, 2], predicted_vol[:, 2])],
+    'RMSE': [
+      np.sqrt(mean_squared_error(test-predicted_mean[:, 0], predicted_vol[:, 0])),
+      np.sqrt(mean_squared_error(test-predicted_mean[:, 1], predicted_vol[:, 1])),
+      np.sqrt(mean_squared_error(test-predicted_mean[:, 2], predicted_vol[:, 2]))]
+}, index=['normal', 't', 'skewt'])
+```
+
+
+
+
+
+## ARMA-GARCH w pakiecie R
+```{r}
+#| echo: TRUE
+
+library(xts)
+library(zoo)
+library(rugarch)
+
+aapl <- read.csv('aapl.us.txt', header = TRUE, sep = ",")
+aapl_xts <- xts(aapl[, 5], order.by = as.Date(aapl[, 1]))
+returns <- diff(log(aapl_xts))
+returns <- na.omit(returns)
+
+spec <- ugarchspec(mean.model = list(armaOrder = c(1, 1), include.mean = TRUE),
+              variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+              distribution.model = "norm")
+fit <- ugarchfit(spec, returns)
+print(fit)
+```
+
+## Źródła
+
+- https://bookdown.org/compfinezbook/introcompfinr/maximum-likelihood-estimation.html
+
+- QUASI-MAXIMUM LIKELIHOOD ESTIMATION AND INFERENCE IN
+                 DYNAMIC MODELS WITH TIME-VARYING COVARIANCES https://public.econ.duke.edu/~boller/Published_Papers/ectrev_92.pdf
