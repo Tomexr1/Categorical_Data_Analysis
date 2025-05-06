@@ -10,7 +10,7 @@ format:
     scrollable: true
     self-contained: true
 title-slide-attributes:
-    data-background-image: "img_prezentacja2.jpg"
+    data-background-image: "images/img_prezentacja2.jpg"
     data-background-size: cover
     data-background-opacity: "0.65"
     data-background-color: "#000000"
@@ -58,13 +58,15 @@ import numpy as np
 import pandas as pd
 from arch import arch_model
 from arch.univariate import SkewStudent
+import seaborn as sns
 ```
 
 ```{python, echo=FALSE, output=FALSE}
-df = pd.read_csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/matematyka_dla_przemyslu/Prezentacja4/Dane - Kaggle/aapl.us.txt')['Close']
-
+df = pd.read_csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/matematyka_dla_przemyslu/Prezentacja4/Dane - Kaggle/aapl.us.txt')
+df['Date'] = pd.to_datetime(df['Date'])
+df.set_index('Date', inplace=True)
 # Liczenie zwrotów procentowych
-returns = df.pct_change().dropna()
+returns = df['Close'].pct_change().dropna()
 
 normal_gm = arch_model(returns, p = 1, q = 1, 
 mean = 'constant', 
@@ -151,16 +153,18 @@ f_skew_resid = skewt.simulate((df_hat_skewt, skew_hat))
 skewt_resid = f_skew_resid(len(gm_skewt_std_resid))
 ```
 
----------------------------------------------------------------
+------------------------------------------------------------------------
 
 ### Rozkład normalny standaryzowanych reszt
 
 ```{python, echo=FALSE, output=TRUE}
 #| fig-align: "center"
-plt.hist(gm_std_resid, bins = 50, 
-         facecolor = 'orange', label = 'Standardized residuals')
-plt.hist(normal_resid, bins = 50, 
-         facecolor = 'tomato', label = 'Normal residuals', alpha=0.7)
+# plt.hist(gm_std_resid, bins = 50, 
+#          facecolor = 'orange', label = 'Standardized residuals')
+# plt.hist(normal_resid, bins = 50, 
+#          facecolor = 'tomato', label = 'Normal residuals', alpha=0.7)
+sns.histplot(gm_std_resid, stat='density', label='Standardized residuals')
+sns.kdeplot(normal_resid, color='red', label='Normal residuals', linestyle='--')
 plt.legend(loc = 'upper left')
 plt.show()
 ```
@@ -169,10 +173,12 @@ plt.show()
 
 ```{python, echo=FALSE, output=TRUE}
 #| fig-align: "center"
-plt.hist(gm_t_std_resid, bins = 50, 
-         facecolor = 'orange', label = 'Standardized residuals')
-plt.hist(t_resid_scaled, bins = 50, 
-         facecolor = 'tomato', label = 't-Student residuals', alpha=0.7)
+# plt.hist(gm_t_std_resid, bins = 50, 
+#          facecolor = 'orange', label = 'Standardized residuals')
+# plt.hist(t_resid_scaled, bins = 50, 
+#          facecolor = 'tomato', label = 't-Student residuals', alpha=0.7)
+sns.histplot(gm_t_std_resid, stat='density', label='Standardized residuals')
+sns.kdeplot(t_resid_scaled, color='red', label='t-Student residuals', linestyle='--')
 plt.legend(loc = 'upper left')
 plt.show()
 ```
@@ -181,10 +187,12 @@ plt.show()
 
 ```{python, echo=FALSE, output=TRUE}
 #| fig-align: "center"
-plt.hist(gm_skewt_std_resid, bins = 50, 
-         facecolor = 'orange', label = 'Standardized residuals')
-plt.hist(skewt_resid, bins = 50, 
-         facecolor = 'tomato', label = 'skewt residuals', alpha=0.7)
+# plt.hist(gm_skewt_std_resid, bins = 50, 
+#          facecolor = 'orange', label = 'Standardized residuals')
+# plt.hist(skewt_resid, bins = 50, 
+#          facecolor = 'tomato', label = 'skewt residuals', alpha=0.7)
+sns.histplot(gm_skewt_std_resid, stat='density', label='Standardized residuals')
+sns.kdeplot(skewt_resid, color='red', label='skewt residuals', linestyle='--')
 plt.legend(loc = 'upper left')
 plt.show()
 ```
@@ -196,3 +204,203 @@ plt.show()
 -   Zerowa średnia: `"zero"`
 
 -   Średnia modelowana jako proces AR: `"AR"` (np. AR(1), AR(2), ...)
+
+Implementacja
+
+```{python}
+ar_gm = arch_model(
+  returns, p = 1, q = 1, 
+  mean = 'AR', lags = 1,  # założenie o średniej
+  vol = 'GARCH', 
+  dist = 'normal' 
+  )
+```
+
+```{python, echo=FALSE, output=FALSE}
+constant_gm = arch_model(
+  returns, p = 1, q = 1,
+  mean = 'constant',
+  vol = 'GARCH',
+  dist = 'normal'
+  )
+zero_gm = arch_model(
+  returns, p = 1, q = 1,
+  mean = 'zero',
+  vol = 'GARCH',
+  dist = 'normal'
+  )
+cmean_result = constant_gm.fit()
+armean_result = ar_gm.fit()
+zero_result = zero_gm.fit()
+
+cmean_vol = cmean_result.conditional_volatility
+armean_vol = armean_result.conditional_volatility
+zeromean_vol = zero_result.conditional_volatility
+```
+
+## Wpływ założeń o średniej
+
+... na szacowaną zmienność warunkową
+
+```{python echo=FALSE, output=TRUE}
+#| fig-align: "center"
+plt.plot(cmean_vol, color = 'blue', label = 'Constant Mean Volatility')
+plt.plot(armean_vol, color = 'red', label = 'AR Mean Volatility', alpha=0.7)
+plt.plot(zeromean_vol, color = 'green', label = 'Zero Mean Volatility', alpha=0.7, linestyle='dashed')
+plt.legend(loc = 'upper right')
+plt.xlabel('')
+plt.savefig('mean_volatility.png')
+```
+
+Korelacja między wynikami
+
+```{python echo=FALSE, output=TRUE}
+# Łączymy w macierz (3 x n)
+all_vols = np.vstack([cmean_vol, armean_vol, zeromean_vol])
+
+# Usuwamy kolumny zawierające NaN
+valid = ~np.isnan(all_vols).any(axis=0)
+
+# Liczymy korelację tylko na poprawnych danych
+corr = np.corrcoef(all_vols[:, valid])
+corr_df = pd.DataFrame(corr, 
+                       columns=['Constant Mean', 'AR Mean', 'Zero Mean'], 
+                       index=['Constant Mean', 'AR Mean', 'Zero Mean'])
+corr_df.style.set_table_styles(
+    [{'selector': 'th', 'props': [('text-align', 'center'), ('font-size', '23px')]},
+     {'selector': 'td', 'props': [('text-align', 'center'), ('font-size', '23px')]}]
+).set_properties(**{
+    'margin-left': 'auto',
+    'margin-right': 'auto',
+    'font-size': '10px',
+    'background-color': 'transparent',
+    'color': 'black'  # lub 'white', jeśli tło slajdu jest ciemne
+})
+
+```
+
+## Asymetryczne wahania zmienności
+
+Model GARCH zakłada, że zmienność reaguje symetrycznie na zdarzenia rynkowe. W praktyce jednak negatywne informacje (np. spadki cen) wywołują silniejszy wzrost zmienności niż pozytywne.
+
+![](images/symmetry_vs_asymmetry.png){fig-align="center"}
+
+## Modele dla asymetrycznych wahań zmienności
+
+### GJR--GARCH(p, o, q)
+
+-   umożliwia większy wpływ negatywnych szoków na zmienność poprzez dodatkowy warunkowy składnik $(\gamma > 0)$
+
+    $$
+    \sigma^2 = \omega + \sum_{i=1}^p\alpha_i\epsilon_{t-i}^2+\sum_{j=1}^o\gamma_jI_{\{\epsilon_{t-j}<0\}}\epsilon_{t-j}^2+\sum_{k=1}^q\beta_k\sigma_{t-k}^2
+    $$
+
+Implementacja
+
+```{python, eval=FALSE}
+arch_model(
+  returns, p = 1, q = 1, 
+  o = 1,  # ustawiamy rząd składnika asymetrycznego
+  mean = 'constant', 
+  vol = 'GARCH'
+  )
+```
+
+\
+
+### EGARCH(p, o, q)
+
+$$
+\ln\sigma_{t}^{2}=\omega+\sum_{i=1}^{p}\alpha_{i}\left(\left|e_{t-i}\right|-\sqrt{2/\pi}\right)+\sum_{j=1}^{o}\gamma_{j} e_{t-j}+\sum_{k=1}^{q}\beta_{k}\ln\sigma_{t-k}^{2},
+$$
+
+gdzie $e_{t}=\epsilon_{t}/\sigma_{t}$.
+
+-   wykładniczy GARCH
+
+-   parametry występujące w modelu nie muszą być dodatnie
+
+Implementacja
+
+```{python, eval=FALSE}
+arch_model(
+  returns, p = 1, q = 1, 
+  o = 1, 
+  mean = 'constant', 
+  vol = 'EGARCH'  # określamy model
+  )
+```
+
+## Porównanie modeli
+
+```{python, echo=FALSE, message=FALSE}
+# Specify GJR-GARCH model assumptions
+gjr_gm = arch_model(returns, p = 1, q = 1, o = 1, vol = 'GARCH', dist = 'normal')
+
+# Fit the model
+gjrgm_result = gjr_gm.fit(disp = 'off')
+
+
+# Specify EGARCH model assumptions
+egarch_gm = arch_model(returns, p = 1, q = 1, o = 1, vol = 'EGARCH', dist = 'normal')
+
+# Fit the model
+egarch_result = egarch_gm.fit(disp = 'off')
+
+gjrgm_vol = gjrgm_result.conditional_volatility
+egarch_vol = egarch_result.conditional_volatility
+
+
+plt.plot(returns.index, returns, color='grey', alpha=0.4, label='Price Returns')
+plt.plot(returns.index, gm_std, color='blue', label='GARCH Volatility')
+plt.plot(returns.index, gjrgm_vol, color='green', label='GJR-GARCH Volatility')
+plt.plot(returns.index, egarch_vol, color='red', label='EGARCH Volatility')
+
+
+_ = plt.xticks(rotation=45)
+plt.gca().xaxis.set_major_locator(plt.MaxNLocator(10))  # max 10 dat
+_ = plt.xlim(min(returns.index), max(returns.index))
+plt.tight_layout()
+plt.legend(loc='upper right');
+plt.show()
+```
+
+### Zbliżenie na lata 1997--1998
+
+```{python, echo=FALSE, message=FALSE}
+# Zbliżenie na lata 1998–2002
+plt.plot(returns.index, returns, color='grey', alpha=0.4, label='Price Returns');
+plt.plot(returns.index, gm_std, color='blue', label='GARCH Volatility');
+plt.plot(returns.index, gjrgm_vol, color='green', label='GJR-GARCH Volatility');
+plt.plot(returns.index, egarch_vol, color='red', label='EGARCH Volatility');
+
+plt.legend(loc='upper right');
+_ = plt.xticks(rotation=45)
+
+# Ustaw zakres dat dla przybliżenia
+_ = plt.xlim(pd.Timestamp("1997-01-01"), pd.Timestamp("1998-12-31"))
+_ = plt.ylim(-0.05, 0.2)
+
+# Ustaw mniejszą liczbę etykiet
+_ = plt.gca().xaxis.set_major_locator(plt.MaxNLocator(6))
+plt.tight_layout()
+plt.show()
+```
+
+## Prognozy oparte na oknie ruchomym
+
+... polegają na ciągłym dopasowywaniu i predykowaniu (1. step forward) przyszłości z uwzględnieniem nowych obserwacji.
+
+
+
+### Expanding window forecast
+
+... czyli poszerzające się okno ruchome
+
+![](images/expanding_window_forecast.png){fig-align="center" width="700"}
+
+### Fixed window forecast
+
+... czyli stałe okno ruchome
+
+![](images/fixed_window_forecast.png){fig-align="center" width="700"}
