@@ -238,6 +238,28 @@ pi1
 pi2
 
 
+
+
+# zad 13
+library(DescTools)
+# 13.1
+t <- table(ankieta$CZY_ZADOW, ankieta$CZY_KIER)
+GoodmanKruskalTau(t)
+# z freemana-haltona wyszło, że są zależne, tau jest bliskie 0, czyli słaba zależność
+# 13.2
+t <- table(ankieta$CZY_ZADOW, ankieta$STAŻ)
+GoodmanKruskalTau(t)
+# z freemana-haltona wyszło, że są niezależne, tau jest bliskie 0, potwierdza to
+t <- table(ankieta$PYT_2, ankieta$STAŻ)
+GoodmanKruskalGamma(t)
+# z freemana-haltona wyszło, że są zależne, gamma wskazuje na lekką dodatnią zależność 
+# 13.3
+t <- table(ankieta$DZIAŁ, ankieta$STAŻ)
+fisher.test(t, conf.level = 0.95, workspace = 2e7)
+GoodmanKruskalTau(t)
+# tau wykazuje zależność silniejszą niz w przypadku poprzednich zmiennych; z freemana-haltona wyszło, że są zależne z bardzo małym pvalue
+
+
 # zad dodatkowe 1
 dCor_pvalue <- function(x, y) {
   
@@ -282,4 +304,3 @@ dCor_pvalue <- function(x, y) {
 x <- ankieta$PYT_2
 y <- ankieta$CZY_KIER
 dCor_pvalue(ankieta$PYT_2, ankieta$CZY_KIER)
-
