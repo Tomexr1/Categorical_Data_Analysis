@@ -1,0 +1,523 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Matematyczne modelowanie procesów decyzyjnych w finansach\"\n",
+        "author: \"Rafał Głodek, Joanna Kusy, Oliwia Makuch, Tomasz Srebniak\"\n",
+        "execute: \n",
+        "  echo: true\n",
+        "format:\n",
+        "  revealjs:\n",
+        "    theme: serif\n",
+        "    transition: slide\n",
+        "    scrollable: true\n",
+        "    self-contained: true\n",
+        "title-slide-attributes:\n",
+        "    data-background-image: \"img_prezentacja2.jpg\"\n",
+        "    data-background-size: cover\n",
+        "    data-background-opacity: \"0.65\"\n",
+        "    data-background-color: \"#000000\"\n",
+        "---\n",
+        "\n",
+        "\n",
+        "## Powtórzenie\n",
+        "\n",
+        "Model GARCH wykorzystywany jest przy modelowaniu i przewidywaniu zmienności w szeregach czasowych. Stosuje się go głównie w analizie finansowej.\\\n",
+        "\n",
+        "Wzór ogólny\n",
+        "\n",
+        "$$\n",
+        "GARCH(p, q): \\sigma_t^2=\\omega+\\sum_{i=1}^{p}{\\alpha_i\\epsilon_{t-i}^2} + \\sum_{j=1}^{q}{\\beta_j\\sigma_{t-j}^2}\n",
+        "$$\n",
+        "\n",
+        "Najczęściej omawiany przypadek\n",
+        "\n",
+        "$$\n",
+        "GARCH(1, 1): \\sigma_t^2=\\omega+{\\alpha\\epsilon_{t-1}^2} + {\\beta\\sigma_{t-1}^2}\n",
+        "$$\n",
+        "\n",
+        "$\\omega$ - bazowy poziom wariancji warunkowej\n",
+        "\n",
+        "$\\alpha$ – współczynnik reakcji na nowe informacje (efekt ARCH)\n",
+        "\n",
+        "$\\beta$ – współczynnik pamięci zmienności (efekt GARCH)\n",
+        "\n",
+        "$\\epsilon_{t-1}^2$ – kwadrat błędu z kroku $t-1$\n",
+        "\n",
+        "$\\sigma_{t-1}^2$ – wariancja z kroku $t-1$\n"
+      ],
+      "id": "94a3ab6a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "import matplotlib.pyplot as plt\n",
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "from arch import arch_model\n",
+        "from arch.univariate import SkewStudent"
+      ],
+      "id": "aa9732e8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "df = pd.read_csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/matematyka_dla_przemyslu/Prezentacja4/Dane - Kaggle/aapl.us.txt')\n",
+        "df.set_index('Date', inplace=True)\n",
+        "\n",
+        "# Liczenie zwrotów procentowych\n",
+        "returns = df['Close'].pct_change().dropna()\n",
+        "\n",
+        "normal_gm = arch_model(returns, p = 1, q = 1, \n",
+        "mean = 'constant', \n",
+        "vol = 'GARCH', \n",
+        "dist = 'normal')\n",
+        "\n",
+        "gm_result = normal_gm.fit()"
+      ],
+      "id": "d443cb2c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Założenia dotyczące rozkładu standaryzowanych reszt\n",
+        "\n",
+        "$$\n",
+        "\\text{reszta} = \\epsilon_t = \\text{predyktowany zwrot} - \\text{średni zwrot}\n",
+        "$$\n",
+        "\n",
+        "$$\n",
+        "\\text{standaryzowana reszta} = \\frac{\\epsilon_t}{\\sigma_t}\n",
+        "$$\n"
+      ],
+      "id": "2bf9a7d3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "gm_resid = gm_result.resid\n",
+        "gm_std = gm_result.conditional_volatility\n",
+        "\n",
+        "gm_std_resid = gm_resid / gm_std"
+      ],
+      "id": "cc209bab",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "\\\n",
+        "\n",
+        "-   Rozkład normalny (domyślna opcja): `\"normal\"`\n",
+        "\n",
+        "-   Rozkład t-Studenta -- grube ogony rozkładu: `\"t\"`\n",
+        "\n",
+        "-   Skośny rozkład t-Studenta -- grube ogony i skośność: `\"skewt\"`\n",
+        "\n",
+        "Implementacja\n"
+      ],
+      "id": "f8d15e08"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "normal_gm = arch_model(\n",
+        "  returns, p = 1, q = 1, \n",
+        "  mean = 'constant', \n",
+        "  vol = 'GARCH', \n",
+        "  dist = 'normal'  # założenie o rozkładzie\n",
+        "  )"
+      ],
+      "id": "ea0dc6c7",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "normal_resid = np.random.normal(0, 1, len(gm_std_resid))\n",
+        "\n",
+        "# tstudent\n",
+        "t_gm = arch_model(returns, p = 1, q = 1, \n",
+        "mean = 'constant', \n",
+        "vol = 'GARCH', \n",
+        "dist = 't')\n",
+        "\n",
+        "gm_t_result = t_gm.fit()\n",
+        "\n",
+        "gm_t_resid = gm_t_result.resid\n",
+        "gm_t_std = gm_t_result.conditional_volatility\n",
+        "\n",
+        "gm_t_std_resid = gm_t_resid /gm_t_std\n",
+        "\n",
+        "df_hat = gm_t_result.params['nu']\n",
+        "t_resid = np.random.standard_t(df=df_hat, size=len(gm_t_std_resid))\n",
+        "t_resid_scaled = t_resid / np.sqrt(df_hat / (df_hat - 2))\n",
+        "\n",
+        "# skośny tstudent\n",
+        "skewt_gm = arch_model(returns, p = 1, q = 1, \n",
+        "mean = 'constant', \n",
+        "vol = 'GARCH', \n",
+        "dist = 'skewt')\n",
+        "\n",
+        "gm_skewt_result = skewt_gm.fit()\n",
+        "\n",
+        "gm_skewt_resid = gm_skewt_result.resid\n",
+        "gm_skewt_std = gm_skewt_result.conditional_volatility\n",
+        "\n",
+        "gm_skewt_std_resid = gm_skewt_resid /gm_skewt_std\n",
+        "\n",
+        "df_hat_skewt = gm_skewt_result.params['eta']\n",
+        "skew_hat = gm_skewt_result.params['lambda']\n",
+        "\n",
+        "skewt = SkewStudent()\n",
+        "f_skew_resid = skewt.simulate((df_hat_skewt, skew_hat))\n",
+        "skewt_resid = f_skew_resid(len(gm_skewt_std_resid))"
+      ],
+      "id": "cd975e46",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "------------------------------------------------------------------------\n",
+        "\n",
+        "### Rozkład normalny standaryzowanych reszt\n"
+      ],
+      "id": "ae3c5cf2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| fig-align: \"center\"\n",
+        "plt.hist(gm_std_resid, bins = 50, \n",
+        "         facecolor = 'orange', label = 'Standardized residuals')\n",
+        "plt.hist(normal_resid, bins = 50, \n",
+        "         facecolor = 'tomato', label = 'Normal residuals', alpha=0.7)\n",
+        "plt.legend(loc = 'upper left')\n",
+        "plt.show()"
+      ],
+      "id": "baac84d4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Rozkład t--Studenta standaryzowanych reszt\n"
+      ],
+      "id": "45d8a319"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| fig-align: \"center\"\n",
+        "plt.hist(gm_t_std_resid, bins = 50, \n",
+        "         facecolor = 'orange', label = 'Standardized residuals')\n",
+        "plt.hist(t_resid_scaled, bins = 50, \n",
+        "         facecolor = 'tomato', label = 't-Student residuals', alpha=0.7)\n",
+        "plt.legend(loc = 'upper left')\n",
+        "plt.show()"
+      ],
+      "id": "1a384515",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Skośny rozkład t--Studenta standaryzowanych reszt\n"
+      ],
+      "id": "28cf018f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| fig-align: \"center\"\n",
+        "plt.hist(gm_skewt_std_resid, bins = 50, \n",
+        "         facecolor = 'orange', label = 'Standardized residuals')\n",
+        "plt.hist(skewt_resid, bins = 50, \n",
+        "         facecolor = 'tomato', label = 'skewt residuals', alpha=0.7)\n",
+        "plt.legend(loc = 'upper left')\n",
+        "plt.show()"
+      ],
+      "id": "fdfcff1c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Założenia o średniej\n",
+        "\n",
+        "-   Stała średnia (domyślna opcja): `\"constant\"`\n",
+        "\n",
+        "-   Zerowa średnia: `\"zero\"`\n",
+        "\n",
+        "-   Średnia modelowana jako proces AR: `\"AR\"` (np. AR(1), AR(2), ...)\n",
+        "\n",
+        "Implementacja\n"
+      ],
+      "id": "5d544ca0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "ar_gm = arch_model(\n",
+        "  returns, p = 1, q = 1, \n",
+        "  mean = 'AR', lags = 1,  # założenie o średniej\n",
+        "  vol = 'GARCH', \n",
+        "  dist = 'normal' \n",
+        "  )"
+      ],
+      "id": "fd7b5bd1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "constant_gm = arch_model(\n",
+        "  returns, p = 1, q = 1,\n",
+        "  mean = 'constant',\n",
+        "  vol = 'GARCH',\n",
+        "  dist = 'normal'\n",
+        "  )\n",
+        "zero_gm = arch_model(\n",
+        "  returns, p = 1, q = 1,\n",
+        "  mean = 'zero',\n",
+        "  vol = 'GARCH',\n",
+        "  dist = 'normal'\n",
+        "  )\n",
+        "cmean_result = constant_gm.fit()\n",
+        "armean_result = ar_gm.fit()\n",
+        "zero_result = zero_gm.fit()\n",
+        "\n",
+        "cmean_vol = cmean_result.conditional_volatility\n",
+        "armean_vol = armean_result.conditional_volatility\n",
+        "zeromean_vol = zero_result.conditional_volatility"
+      ],
+      "id": "a7b9ca3e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Wpływ założeń o średniej\n",
+        "\n",
+        "... na szacowaną zmienność warunkową\n"
+      ],
+      "id": "a36d70ef"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| fig-align: \"center\"\n",
+        "plt.plot(cmean_vol, color = 'blue', label = 'Constant Mean Volatility')\n",
+        "plt.plot(armean_vol, color = 'red', label = 'AR Mean Volatility', alpha=0.7)\n",
+        "plt.plot(zeromean_vol, color = 'green', label = 'Zero Mean Volatility', alpha=0.7, linestyle='dashed')\n",
+        "plt.legend(loc = 'upper right')\n",
+        "plt.xlabel('')\n",
+        "plt.savefig('mean_volatility.png')"
+      ],
+      "id": "1735fa18",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Korelacja między wynikami\n"
+      ],
+      "id": "384b2a01"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Łączymy w macierz (3 x n)\n",
+        "all_vols = np.vstack([cmean_vol, armean_vol, zeromean_vol])\n",
+        "\n",
+        "# Usuwamy kolumny zawierające NaN\n",
+        "valid = ~np.isnan(all_vols).any(axis=0)\n",
+        "\n",
+        "# Liczymy korelację tylko na poprawnych danych\n",
+        "corr = np.corrcoef(all_vols[:, valid])\n",
+        "corr_df = pd.DataFrame(corr, \n",
+        "                       columns=['Constant Mean', 'AR Mean', 'Zero Mean'], \n",
+        "                       index=['Constant Mean', 'AR Mean', 'Zero Mean'])\n",
+        "corr_df.style.set_table_styles(\n",
+        "    [{'selector': 'th', 'props': [('text-align', 'center'), ('font-size', '23px')]},\n",
+        "     {'selector': 'td', 'props': [('text-align', 'center'), ('font-size', '23px')]}]\n",
+        ").set_properties(**{\n",
+        "    'margin-left': 'auto',\n",
+        "    'margin-right': 'auto',\n",
+        "    'font-size': '10px',\n",
+        "    'background-color': 'transparent',\n",
+        "    'color': 'black'  # lub 'white', jeśli tło slajdu jest ciemne\n",
+        "})"
+      ],
+      "id": "104213e0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Modele dla asymetrycznych wahań zmienności\n",
+        "\n",
+        "Model GARCH zakłada, że zmienność reaguje symetrycznie na zdarzenia rynkowe. W praktyce jednak negatywne informacje (np. spadki cen) wywołują silniejszy wzrost zmienności niż pozytywne.\n",
+        "\n",
+        "![](symmetry_vs_asymmetry.png){fig-align=\"center\"}\n",
+        "\n",
+        "### GJR--GARCH(p, o, q)\n",
+        "\n",
+        "-   umożliwia większy wpływ negatywnych szoków na zmienność poprzez dodatkowy warunkowy składnik $(\\gamma > 0)$\n",
+        "\n",
+        "    $$\n",
+        "    \\sigma^2 = \\omega + \\sum_{i=1}^p\\alpha_i\\epsilon_{t-i}^2+\\sum_{j=1}^o\\gamma_jI_{\\{\\epsilon_{t-j}<0\\}}\\epsilon_{t-j}^2+\\sum_{k=1}^q\\beta_k\\sigma_{t-k}^2\n",
+        "    $$\n",
+        "\n",
+        "Implementacja\n"
+      ],
+      "id": "1be46bc4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "arch_model(\n",
+        "  returns, p = 1, q = 1, \n",
+        "  o = 1,  # ustawiamy rząd składnika asymetrycznego\n",
+        "  mean = 'constant', \n",
+        "  vol = 'GARCH'\n",
+        "  )"
+      ],
+      "id": "88d94162",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "\\\n",
+        "\n",
+        "### EGARCH(p, o, q)\n",
+        "\n",
+        "$$\n",
+        "\\ln\\sigma_{t}^{2}=\\omega+\\sum_{i=1}^{p}\\alpha_{i}\\left(\\left|e_{t-i}\\right|-\\sqrt{2/\\pi}\\right)+\\sum_{j=1}^{o}\\gamma_{j} e_{t-j}+\\sum_{k=1}^{q}\\beta_{k}\\ln\\sigma_{t-k}^{2},\n",
+        "$$\n",
+        "\n",
+        "gdzie $e_{t}=\\epsilon_{t}/\\sigma_{t}$.\n",
+        "\n",
+        "-   wykładniczy GARCH\n",
+        "\n",
+        "-   parametry występujące w modelu nie muszą być dodatnie\n",
+        "\n",
+        "Implementacja\n"
+      ],
+      "id": "228548db"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "arch_model(\n",
+        "  returns, p = 1, q = 1, \n",
+        "  o = 1, \n",
+        "  mean = 'constant', \n",
+        "  vol = 'EGARCH'  # określamy model\n",
+        "  )"
+      ],
+      "id": "6beff366",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Porównanie modeli\n"
+      ],
+      "id": "dd16f79f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plotly.graph_objects as go\n",
+        "# Generowanie fikcyjnych danych\n",
+        "np.random.seed(42)\n",
+        "\n",
+        "# Zmienność i dane zwrotów\n",
+        "returns = np.random.normal(0, 1, 100)\n",
+        "gm_std = np.random.normal(0.02, 0.01, 100)  # GARCH Volatility\n",
+        "gjrgm_vol = np.random.normal(0.015, 0.01, 100)  # GJR-GARCH Volatility\n",
+        "egarch_vol = np.random.normal(0.03, 0.015, 100)  # EGARCH Volatility\n",
+        "\n",
+        "# Tworzymy wykres\n",
+        "fig = go.Figure()\n",
+        "\n",
+        "# Dodajemy dane do wykresu\n",
+        "fig.add_trace(go.Scatter(y=returns, mode='lines', name='Returns', line=dict(color='grey'), opacity=0.4))\n",
+        "fig.add_trace(go.Scatter(y=gm_std, mode='lines', name='GARCH Volatility', line=dict(color='blue')))\n",
+        "fig.add_trace(go.Scatter(y=gjrgm_vol, mode='lines', name='GJR-GARCH Volatility', line=dict(color='green')))\n",
+        "fig.add_trace(go.Scatter(y=egarch_vol, mode='lines', name='EGARCH Volatility', line=dict(color='red')))\n",
+        "\n",
+        "# Aktualizujemy układ wykresu\n",
+        "fig.update_layout(\n",
+        "    title='Porównanie estymowanej zmienności',\n",
+        "    xaxis_title='Obserwacje',\n",
+        "    yaxis_title='Wartość',\n",
+        "    template='plotly_white',\n",
+        "    height=500\n",
+        ")"
+      ],
+      "id": "55a83a78",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/joannakusy/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

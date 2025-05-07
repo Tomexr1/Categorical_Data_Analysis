@@ -9,12 +9,15 @@ format:
     transition: slide
     scrollable: true
     self-contained: true
+    fontsize: "24pt"
 title-slide-attributes:
     data-background-image: "images/img_prezentacja2.jpg"
     data-background-size: cover
     data-background-opacity: "0.65"
     data-background-color: "#000000"
 ---
+
+## Powtórzenie
 
 ```{=html}
 <style>
@@ -30,13 +33,6 @@ title-slide-attributes:
 
 </style>
 ```
-
-```{r}
-# library(reticulate)
-# use_condaenv("/Users/tomasz/opt/anaconda3/bin/python", required = TRUE)
-```
-
-## Powtórzenie
 
 Model GARCH wykorzystywany jest przy modelowaniu i przewidywaniu zmienności w szeregach czasowych. Stosuje się go głównie w analizie finansowej.\
 
@@ -79,10 +75,11 @@ import pandas as pd
 from arch import arch_model
 from arch.univariate import SkewStudent
 import seaborn as sns
+from scipy import stats
 ```
 
 ```{python, echo=FALSE, output=FALSE}
-df = pd.read_csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/matematyka_dla_przemyslu/Prezentacja4/Dane - Kaggle/aapl.us.txt')
+df = pd.read_csv('aapl.us.txt')
 df['Date'] = pd.to_datetime(df['Date'])
 df.set_index('Date', inplace=True)
 # Liczenie zwrotów procentowych
@@ -184,7 +181,9 @@ skewt_resid = f_skew_resid(len(gm_skewt_std_resid))
 # plt.hist(normal_resid, bins = 50, 
 #          facecolor = 'tomato', label = 'Normal residuals', alpha=0.7)
 sns.histplot(gm_std_resid, stat='density', label='Standardized residuals')
-sns.kdeplot(normal_resid, color='red', label='Normal residuals', linestyle='--')
+# sns.kdeplot(normal_resid, color='red', label='Normal residuals', linestyle='--')
+x = np.linspace(min(gm_std_resid), max(gm_std_resid), len(gm_std_resid))
+plt.plot(x, stats.norm.pdf(x, 0, 1), color='red', label='Normal residuals', linestyle='--')
 plt.legend(loc = 'upper left')
 plt.show()
 ```
@@ -198,12 +197,52 @@ plt.show()
 # plt.hist(t_resid_scaled, bins = 50, 
 #          facecolor = 'tomato', label = 't-Student residuals', alpha=0.7)
 sns.histplot(gm_t_std_resid, stat='density', label='Standardized residuals')
-sns.kdeplot(t_resid_scaled, color='red', label='t-Student residuals', linestyle='--')
+# sns.kdeplot(t_resid_scaled, color='red', label='t-Student residuals', linestyle='--')
+x = np.linspace(min(gm_t_std_resid), max(gm_t_std_resid), len(gm_t_std_resid))
+plt.plot(x, stats.t.pdf(x, df_hat), color='red', label='t-Student residuals', linestyle='--')
 plt.legend(loc = 'upper left')
 plt.show()
 ```
 
 ### Skośny rozkład t--Studenta standaryzowanych reszt
+
+```{python , echo=FALSE}
+import numpy as np
+from scipy.special import gamma
+
+def compute_constants(eta, lam):
+    assert 2 < eta < np.inf, "eta must be greater than 2"
+    assert -1 < lam < 1, "lambda must be in (-1, 1)"
+
+    c = gamma((eta + 1) / 2) / (np.sqrt(np.pi * (eta - 2)) * gamma(eta / 2))
+    a = 4 * lam * c * ((eta - 2) / (eta - 1))
+    b_squared = 1 + 3 * lam**2 - a**2
+    b = np.sqrt(b_squared)
+    
+    return a, b, c
+
+def g(z, eta, lam):
+    a, b, c = compute_constants(eta, lam)
+    
+    # Convert z to a numpy array for element-wise operations
+    z = np.asarray(z)
+    
+    # Piecewise definition
+    left_mask = z < -a / b
+    right_mask = ~left_mask
+    
+    result = np.empty_like(z, dtype=float)
+    
+    # Left side
+    left_term = 1 + (1 / (eta - 2)) * ((b * z[left_mask] + a) / (1 - lam))**2
+    result[left_mask] = b * c * left_term**(-(eta + 1)/2)
+    
+    # Right side
+    right_term = 1 + (1 / (eta - 2)) * ((b * z[right_mask] + a) / (1 + lam))**2
+    result[right_mask] = b * c * right_term**(-(eta + 1)/2)
+    
+    return result
+```
 
 ```{python, echo=FALSE, output=TRUE}
 #| fig-align: "center"
@@ -212,7 +251,9 @@ plt.show()
 # plt.hist(skewt_resid, bins = 50, 
 #          facecolor = 'tomato', label = 'skewt residuals', alpha=0.7)
 sns.histplot(gm_skewt_std_resid, stat='density', label='Standardized residuals')
-sns.kdeplot(skewt_resid, color='red', label='skewt residuals', linestyle='--')
+# sns.kdeplot(skewt_resid, color='red', label='skewt residuals', linestyle='--')
+x = np.linspace(min(gm_skewt_std_resid), max(gm_skewt_std_resid), len(gm_skewt_std_resid))
+plt.plot(x, g(x, df_hat_skewt, skew_hat), color='red', label='skewt residuals', linestyle='--')
 plt.legend(loc = 'upper left')
 plt.show()
 ```
@@ -301,7 +342,7 @@ corr_df.style.set_table_styles(
 
 ## Asymetryczne wahania zmienności
 
-Model GARCH zakłada, że zmienność reaguje symetrycznie na zdarzenia rynkowe. W praktyce jednak negatywne informacje (np. spadki cen) wywołują silniejszy wzrost zmienności niż pozytywne.
+Model GARCH zakłada, że zmienność reaguje symetrycznie na zdarzenia rynkowe. W praktyce jednak negatywne informacje (np. spadki cen) wywołują silniejszy wzrost zmiennościniż pozytywne.
 
 ![](images/symmetry_vs_asymmetry.png){fig-align="center"}
 
@@ -409,7 +450,17 @@ plt.show()
 
 ## Prognozy oparte na oknie ruchomym
 
+::: {style="margin: 50px auto; font-size:30pt;"}
 ... polegają na ciągłym dopasowywaniu i predykowaniu (1. step forward) przyszłości z uwzględnieniem nowych obserwacji.
+
+-   Brak nachodzenia danych używanych do predykcji i tych, które są predykowane
+
+-   Model jest mniej podatny na nadmierne dopasowanie (overfitting)
+
+-   Lepsze dostosowanie do bieżącej sytuacji rynkowej
+:::
+
+------------------------------------------------------------------------
 
 ### Expanding window forecast
 
@@ -423,8 +474,77 @@ plt.show()
 
 ![](images/fixed_window_forecast.png){fig-align="center" width="700"}
 
+### Jak ustalić rozmiar okna?
 
-## ARMA-GARCH w pakiecie R {.smaller}
+-   Zwykle ustalane indywidualnie dla każdego przypadku.
+
+-   **Zbyt szeroki rozmiar okna:** uwzględnienie nieaktualnych danych, które mogą prowadzić do wysokiego błędu.
+
+-   **Zbyt wąski rozmiar okna**: wykluczenie istotnych danych, co może prowadzić do wyższej wariancji.
+
+-   **Optymalny rozmiar okna**: kompromis równoważący odchylenie i wariancję.
+
+## Rolling window forecast -- implementacja
+
+::: {.scrollable}
+```{python}
+date = '1997-07-08'
+start_loc = returns.index.get_loc(date)
+end_loc = start_loc + 500
+forecasts = {}
+model = arch_model(returns, vol='GARCH', p=1, q=1, dist='normal')
+
+for i in range(70):
+    gm_result = model.fit(first_obs = i + start_loc, 
+                             last_obs = i + end_loc,
+                             disp='off')
+    temp_result = gm_result.forecast(horizon = 1).variance
+    last_index = returns.index[i + end_loc - 1]  
+    fcast = temp_result.loc[last_index]  
+    forecasts[fcast.name] = fcast
+    
+variance_fixedwin = pd.DataFrame(forecasts).T
+vol_fixedwin = np.sqrt(variance_fixedwin)
+```
+
+```{python, echo=FALSE, output=FALSE, result:"hide"}
+start_loc = returns.index.get_loc(date)
+end_loc = start_loc + 500
+forecasts = {}
+model = arch_model(returns, vol='GARCH', p=1, q=1, o=1, dist='normal')
+for i in range(70):
+    gm_result = model.fit(first_obs = start_loc, 
+                             last_obs = i + end_loc, disp='off')
+    temp_result = gm_result.forecast(horizon = 1).variance
+    last_index = returns.index[i + end_loc - 1]  
+    fcast = temp_result.loc[last_index]  
+    forecasts[fcast.name] = fcast
+variance_expandwin = pd.DataFrame(forecasts).T
+
+# Calculate volatility from variance forecast with an expanding window
+vol_expandwin = np.sqrt(variance_expandwin)
+
+
+# Plot results
+plt.figure(figsize=(16,8));
+
+# Plot volatility forecast with an expanding window
+plt.plot(vol_expandwin, color = 'blue', label='Expanding Window');
+
+# Plot volatility forecast with a fixed rolling window
+plt.plot(vol_fixedwin, color = 'red', label='Rolling Window');
+
+plt.plot(returns.loc[variance_expandwin.index], color = 'grey', label='Daily Return');
+
+plt.legend();
+plt.savefig("rolling_window_forecast.png");
+```
+\
+
+### Porównanie podejść
+![](rolling_window_forecast.png){style="display: block; margin-left: auto; margin-right: auto; width: 1000px;"}
+:::
+## ARMA-GARCH w pakiecie R
 
 ```{r}
 #| echo: TRUE
@@ -450,3 +570,9 @@ print(fit)
 -   https://bookdown.org/compfinezbook/introcompfinr/maximum-likelihood-estimation.html
 
 -   QUASI-MAXIMUM LIKELIHOOD ESTIMATION AND INFERENCE IN DYNAMIC MODELS WITH TIME-VARYING COVARIANCES https://public.econ.duke.edu/\~boller/Published_Papers/ectrev_92.pdf
+
+-   https://users.ssc.wisc.edu/\~bhansen/papers/ier_94.pdf
+
+-   https://arch.readthedocs.io
+
+-   https://goldinlocks.github.io/ARCH_GARCH-Volatility-Forecasting/
