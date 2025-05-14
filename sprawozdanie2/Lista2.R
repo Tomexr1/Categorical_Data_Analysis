@@ -259,6 +259,50 @@ fisher.test(t, conf.level = 0.95, workspace = 2e7)
 GoodmanKruskalTau(t)
 # tau wykazuje zależność silniejszą niz w przypadku poprzednich zmiennych; z freemana-haltona wyszło, że są zależne z bardzo małym pvalue
 
+# zad 14
+library(ggplot2)
+library(expm)
+
+correspondence_analysis <- function(t, variables = c("row", "col")) {
+  P <- prop.table(t)
+  r <- rowSums(P)
+  c <- colSums(P)
+  
+  D_r <- diag(r)
+  R <- solve(D_r) %*% P
+  D_c <- diag(c)
+  C <- P %*% solve(D_c)
+  
+  A <- solve(sqrtm(D_r)) %*% (P - r %*% t(c)) %*% solve(sqrtm(D_c))
+
+  SVD <- svd(A)
+  U <- SVD$u
+  V <- SVD$v
+  D <- diag(SVD$d)
+  
+  F <- solve(sqrtm(D_r)) %*% U %*% D
+  G <- solve(sqrtm(D_c)) %*% V %*% D
+  print(F)
+  print(G)
+  
+  row_std <- F[, 1:2]
+  col_std <- G[, 1:2]
+  
+  ggplot(data.frame(x = c(row_std[, 1], col_std[, 1]),
+                    y = c(row_std[, 2], col_std[, 2]),
+                    label = c(rownames(t), colnames(t)),
+                    variable = c(rep(variables[1], nrow(t)), rep(variables[2], ncol(t)))), 
+         aes(x = x, y = y, color = variable)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+    geom_point(aes(x = x, y = y)) +
+    geom_text(aes(x = x, y = y, label = label), vjust = 1.5) +
+    labs(x = "Dim 1", y = "Dim 2") +
+    theme_minimal()
+}
+t <- table(ankieta$PYT_2, ankieta$STAŻ)
+correspondence_analysis(t, variables = c("PYT_2", "STAŻ"))
+
 
 # zad dodatkowe 1
 dCor_pvalue <- function(x, y) {
