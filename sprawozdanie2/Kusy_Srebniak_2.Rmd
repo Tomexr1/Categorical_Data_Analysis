@@ -6,20 +6,18 @@ author:
 subtitle: Sprawozdanie 2
 output:
   pdf_document:
+    latex_engine: xelatex
     toc: true
+    number_sections: true
     fig_caption: true
     fig_width: 5
     fig_height: 4
-    number_sections: true
-  html_document:
-    toc: true
-    df_print: paged
-header-includes:
-- \usepackage[OT4]{polski}
-- \usepackage[utf8]{inputenc}
-- \usepackage{graphicx}
-- \usepackage{float}
 fontsize: 12pt
+header-includes:
+  - \usepackage{fontspec}
+  - \usepackage{polyglossia}
+  - \setmainlanguage{polish}
+  - \setmainfont{Times New Roman}
 ---
 
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
@@ -35,11 +33,14 @@ library(binom)
 library(ggstatsplot)
 library(grid)
 library(vcd)
-
+library(knitr)
+library(DescTools)
+library(expm)
 
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 knitr::opts_chunk$set(fig.pos = "H", out.extra = "", fig.align = "center")
+knitr::opts_chunk$set(dev = "cairo_pdf")
 
 ```
 
@@ -66,7 +67,7 @@ ci_exact$len <- ci_exact$upper - ci_exact$lower
 ```
 
 ```{r zad1_exact_res, echo=FALSE}
-ci_exact
+kable(ci_exact)
 ```
 
 Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego metodą Wilsona.
@@ -74,7 +75,7 @@ Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego meto
 ```{r zad1_wilson, echo=FALSE}
 ci_wilson <-binom.confint(res, 200, 1 - alpha/5, method='wilson')
 ci_wilson$len <- ci_wilson$upper - ci_wilson$lower
-ci_wilson
+kable(ci_wilson)
 ```
 
 Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego metodą asymptotyczną, opartą na Centralnym Twierdzeniu Granicznym.
@@ -82,7 +83,7 @@ Realizacja przedziału ufności dla wektora prawdopodobieństw wyznaczonego meto
 ```{r zad1_asymptotic, echo=FALSE}
 ci_asymptotic <-binom.confint(res, 200, 1 - alpha/5, method='asymptotic')
 ci_asymptotic$len <- ci_asymptotic$upper - ci_asymptotic$lower
-ci_asymptotic
+kable(ci_asymptotic)
 ```
 
 Dla zadanych kategorii otrzymujemy proporcje:
@@ -237,7 +238,7 @@ t <- table(ankieta$CZY_KIER, ankieta$WIEK_KAT)
 fisher.test(t, conf.level = 0.95) 
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zajmowanie stanowiska kierowniczego i wiek są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zajmowanie stanowiska kierowniczego i wiek są zmiennymi niezależnymi.
 
 ### Podpunkt b
 
@@ -248,7 +249,7 @@ t <- table(ankieta$CZY_KIER, ankieta$STAŻ)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 odrzucucamy hipotezę zerową. Zmienne dotyczące zajmowania stanowiska kierowniczego oraz stażu pracy są zależne.
+Na poziomie istotności 0.05 odrzucucamy hipotezę zerową. Zakładamy, że zmienne dotyczące zajmowania stanowiska kierowniczego oraz stażu pracy są zależne.
 
 ### Podpunkt c
 
@@ -261,7 +262,7 @@ t <- table(ankieta$PYT_2, ankieta$CZY_KIER)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 odrzucamy hipotezę zerową. Zajmowanie stanowiska kierowniczego i stopień zadowolenia ze szkoleń są zmiennymi zależnymi.
+Na poziomie istotności 0.05 odrzucamy hipotezę zerową. Zakładamy, że zajmowanie stanowiska kierowniczego i stopień zadowolenia ze szkoleń są zmiennymi zależnymi.
 
 Zmienne **CZY_ZADOW** oraz **CZY_KIER**.
 
@@ -270,7 +271,7 @@ t <- table(ankieta$CZY_ZADOW, ankieta$CZY_KIER)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zajmowanie stanowiska kierowniczego i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zajmowanie stanowiska kierowniczego i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
 
 ### Podpunkt d
 
@@ -283,7 +284,7 @@ t <- table(ankieta$PYT_2, ankieta$STAŻ)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 odrzucamy hipotezę zerową. Staż pracy i stopień zadowolenia ze szkoleń są zmiennymi zależnymi.
+Na poziomie istotności 0.05 odrzucamy hipotezę zerową. Zakładamy, że staż pracy i stopień zadowolenia ze szkoleń są zmiennymi zależnymi.
 
 Zmienne **CZY_ZADOW** oraz **STAŻ**.
 
@@ -292,7 +293,7 @@ t <- table(ankieta$CZY_ZADOW, ankieta$STAŻ)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Staż pracy i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że staż pracy i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
 
 ### Podpunkt e
 
@@ -305,7 +306,7 @@ t <- table(ankieta$PYT_2, ankieta$PŁEĆ)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Płeć pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że płeć pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
 
 Zmienne **CZY_ZADOW** oraz **PŁEĆ**.
 
@@ -314,7 +315,7 @@ t <- table(ankieta$CZY_ZADOW, ankieta$PŁEĆ)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Płeć pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że płeć pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
 
 ### Podpunkt f
 
@@ -327,7 +328,7 @@ t <- table(ankieta$PYT_2, ankieta$WIEK_KAT)
 fisher.test(t, conf.level = 0.95, workspace = 2e7)
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Wiek pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że wiek pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
 
 Zmienne **CZY_ZADOW** oraz **WIEK_KAT**.
 
@@ -336,7 +337,7 @@ t <- table(ankieta$CZY_ZADOW, ankieta$WIEK_KAT)
 fisher.test(t, conf.level = 0.95)
 ```
 
-Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Wiek pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
+Na poziomie istotności 0.05 nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że wiek pracownika i stopień zadowolenia ze szkoleń są zmiennymi niezależnymi.
 
 ### Porównanie wyników
 
@@ -393,7 +394,7 @@ t <- table(ankieta$PYT_2, ankieta$CZY_KIER)
 chisq.test(t, correct = TRUE)
 ```
 
-P–value jest mniejsze niż zadany poziom istotności, zatem odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zajmowane stanowiska kierowniczego i stopień zadowolenia ze szkoleń są zmiennymi zależnymi. Wynik jest taki sam, jak w zadaniu 6c, gdy pod uwagę braliśmy te same zmienne.
+P–value jest mniejsze niż zadany poziom istotności, zatem odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zakładamy, że zajmowanie stanowiska kierowniczego i stopień zadowolenia ze szkoleń są zmiennymi zależnymi. Wynik jest taki sam, jak w zadaniu 6c, gdy pod uwagę braliśmy te same zmienne.
 
 Poniżej zaprezentowano wykres asocjacyjny reszt wyznaczonych w teście.
 
@@ -468,7 +469,7 @@ Poniżej przedstawiono wyniki symulacji.
 ```{r zad9_results, echo=FALSE}
 results <- sapply(n_values, function(n) simulate_power(n, n_iter, prob, alpha))
 colnames(results) <- paste("n =", n_values)
-print(round(results, 4))
+kable(round(results, 4))
 ```
 
 Wraz ze wzrostem wartości $n$ rośnie moc testu. Dla $n=50$ moc testu chi--kwadrat Pearsona jest większa od mocy testu Fishera. Dla $n=100$ jest odwrotnie. Przy $n=1000$ moce testów są równe z dokładnością do 4 miejsc po przecinku.
@@ -529,4 +530,340 @@ t <- table(ankieta$PYT_2, ankieta$CZY_KIER)
 lr_test_pvalue(t)
 ```
 
-Przyjmjując za poziom istotności 0.05, odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zajmowane stanowisko kierownicze i stopień zadowolenia ze szkoleń są zmiennymi zależnymi. Wynik jest taki sam, jak w zadaniu 8.
+Przyjmjując za poziom istotności 0.05, odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zakładamy, że zajmowane stanowisko kierownicze i stopień zadowolenia ze szkoleń są zmiennymi zależnymi. Wynik jest taki sam, jak w zadaniu 8.
+
+# Część IV i V
+
+## Zadanie 11
+
+Przeprowadzone wsród brytyjskich mężczyzn badanie trwające 20 lat wykazało, że odsetek zmarłych (na rok) z powodu raka płuc wynosił 0.00140 wsród osób palących papierosy i 0.00010 wsród osób niepalących. Odsetek zmarłych z powodu choroby niedokrwiennej serca wynosił 0.00669 dla palaczy i 0.00413 dla osób niepalących.
+
+```{r zad11_tabelka, echo=FALSE}
+t <- matrix(c(0.00140, 0.00010, 0.00669, 0.00413), nrow = 2)
+rownames(t) <- c("Palenie", "Nie palenie")
+colnames(t) <- c("Rak płuc", "Choroba niedokrwienna serca")
+kable(t)
+```
+
+### Różnica proporcji
+
+Różnica proporcji dla palaczy i osób niepalących wynosi `r t[1, 1] - t[2, 1]` dla raka płuc oraz `r t[1, 2] - t[2, 2]` dla choroby niedokrwiennej serca. Obie wartości są bliskie 0, które jest równoważne z niezależnością zmiennych. Warto jednak zauważyć, że różnica proporcji dla choroby niedokrwiennej serca jest ponad 2 razy większa niż dla raka płuc.
+
+### Ryzyko względne
+
+Ryzyko względne dla palaczy i osób niepalących wynosi `r t[1, 1] / t[2, 1]` dla raka płuc oraz około `r round(t[1, 2] / t[2, 2], 4)` dla choroby niedokrwiennej serca. Obie wartości są większe od 1, co wskazuje na związek zmiennych. Ryzyko zgonu na raka płuc jest ponad 14 razy większe dla palaczy niż dla osób niepalących. Dla choroby niedokrwiennej serca ryzyko zgonu dla palacza jest większe o około 1.62.
+
+### Iloraz szans
+
+Iloraz szans dla palaczy i osób niepalących wynosi około `r round(t[1, 1] / (1 - t[1, 1]) / (t[2, 1] / (1 - t[2, 1])), 4)` dla raka płuc oraz `r round(t[1, 2] / (1 - t[1, 2]) / (t[2, 2] / (1 - t[2, 2])), 4)` dla choroby niedokrwiennej serca. Oba ilorazy są większe od 1, co oznacza, że szansa zgonu z powodu tych chorób jest wyższa wśród palaczy niż wśród osób niepalących.. Większe odchylenie od 1 wskazuje na silniejszy związek, co w tym przypadku ma miejsce dla raka płuc.
+
+## Zadanie 12
+
+Poniższa tabela przedstawia wyniki dotyczące śmiertelności kierowców i pasażerów w wypadkach samochodowych na Florydzie w 2008 roku, w zależności od tego, czy osoba miała zapięty pas bezpieczeństwa czy nie.
+
+```{r zad12_tabelka, echo=FALSE}
+t <- matrix(c(1085, 703, 55623, 441239), nrow = 2)
+rownames(t) <- c('bez pasów', 'z pasami')
+colnames(t) <- c('śmiertelny', 'nieśmiertelny')
+kable(t)
+```
+
+### Podpunkt a
+
+Warunkowe prawdopodobieństwo śmierci w wypadku ze względu na użycie przez kierowców i pasażerów pasa bezpieczeństwa wynosi `r t[2, 1] / sum(t[2, ])`.
+
+Warunkowe prawdopodobieństwo śmierci w wypadku ze względu na nieużycie przez kierowców i pasażerów pasa bezpieczeństwa wynosi `r t[1, 1] / sum(t[1, ])`.
+
+### Podpunkt b
+
+Warunkowe prawdopodobieństwo użycia pasa bezpieczeństwa ze względu na kierowców i pasażerów ze śmiertelnymi obrażeniami wynosi `r t[2, 1] / sum(t[, 1])`.
+
+Warunkowe prawdopodobieństwo użycia pasa bezpieczeństwa ze względu na kierowców i pasażerów, którzy przeżyli wypadek wynosi `r t[2, 2] / sum(t[, 2])`.
+
+### Podpunkt c
+
+Naturalnym wyborem zmiennej objaśniającej jest zmienna dotycząca użycia pasa bezpieczeństwa. Poprzez taki wybór traktujemy śmierć w wypadku jako zmienną objaśnianą.
+
+#### Różnica proporcji
+
+```{r zad12c, echo=FALSE}
+pi1 = t[1, 1] / sum(t[1, ]) 
+pi2 = t[2, 1] / sum(t[2, ])
+```
+
+Różnica proporcji dla osób z niezapiętymi i zapiętymi pasami wynosi `r pi1 - pi2`. Wartość ta jest nieweiele większa od 0, co może wskazywać na słabą zależność zmiennych.
+
+#### Ryzyko względne
+
+Ryzyko względne dla osób z niezapiętymi i zapiętymi pasami wynosi `r pi1 / pi2`. Wartość ta jest większa od 1, co wskazuje na związek zmiennych. Ryzyko śmierci w wypadku dla osób z niezapiętymi pasami jest około `r round(pi1 / pi2, 4)` razy większe niż dla osób z zapiętymi pasami.
+
+#### Iloraz szans
+
+Iloraz szans dla osób z niezapiętymi i zapiętymi pasami wynosi `r round((pi1 / (1 - pi1)) / (pi2 / (1 - pi2)), 4)` i jest większy od 1, co oznacza, że szansa śmierci w wypadku jest większa dla osób bez pasów niż dla osób z zapiętym pasem bezpieczeństwa.
+
+Ryzyko względne oraz iloraz szans przyjmują podobne wartości ze względu na małą liczbę śmiertelnych wypadków.
+
+## Zadanie 13
+
+Obliczono wartości odpowiednich miar współzmienności dla niektórych z wcześniej omawianych zmiennych.
+
+### Podpunkt a
+
+Stopień zadowolenia ze szkoleń w kontekście dopasowania do indywidualnych potrzeb w pierwszym badanym okresie (zmienna CZY_ZADOW) i zajmowane stanowisko.
+
+```{r zad13a}
+t <- table(ankieta$CZY_ZADOW, ankieta$CZY_KIER)
+GoodmanKruskalTau(t)
+```
+
+Wartość współczynnika $\tau$ jest bliska zeru, co wskazuje na brak istotnej zależności między zmiennymi. Dodatkowo w zadaniu 6c, na podstawie testu Freemana–Haltona przy poziomie istotności 0.05, nie odrzuciliśmy hipotezy o niezależności. Uwzględniając oba wyniki, można wnioskować o braku zależności między analizowanymi zmiennymi.
+
+### Podpunkt b
+
+Stopień zadowolenia ze szkoleń w kontekście dopasowania do indywidualnych potrzeb w pierwszym badanym okresie i staż pracy.
+
+#### Współczynnik $\tau$
+
+Jako zmienną mierzącą stopień zadowolenia ze szkoleń w kontekście dopasowania do indywidualnych potrzeb w pierwszym badanym okresie przyjęto zmienną **CZY_ZADOW**.
+
+```{r zad13b_tau}
+t <- table(ankieta$CZY_ZADOW, ankieta$STAŻ)
+GoodmanKruskalTau(t)
+```
+
+Wartość współczynnika $\tau$ jest bliska zeru, co wskazuje na brak istotnej zależności między zmiennymi. Dodatkowo w zadaniu 6d, na podstawie testu Freemana–Haltona przy poziomie istotności 0.05, nie odrzuciliśmy hipotezy o niezależności. Uwzględniając oba wyniki, można wnioskować o braku zależności między analizowanymi zmiennymi.
+
+#### Współczynnik $\gamma$
+
+Jako zmienną mierzącą stopień zadowolenia ze szkoleń w kontekście dopasowania do indywidualnych potrzeb w pierwszym badanym okresie przyjęto zmienną **PYT_2**.
+
+```{r zad13b_gamma}
+t <- table(ankieta$PYT_2, ankieta$STAŻ)
+GoodmanKruskalGamma(t)
+```
+
+Wartość współczynnika $\gamma$ jest większa od zera, co wskazuje na dodatnią zależność między zmiennymi. Oznacza to, że wyższe kategorie jednej zmiennej mają tendencję do współwystępowania z wyższymi kategoriami drugiej zmiennej. Dodatkowo, w zadaniu 6d na podstawie testu Freemana–Haltona przy poziomie istotności 0.05, odrzuciliśmy hipotezę o niezależności zmiennych. Uwzględniając oba wyniki, można wnioskować o istnieniu zależności między analizowanymi zmiennymi.
+
+### Podpunkt c
+
+Zajmowane stanowisko i staż pracy.
+
+```{r zad13c}
+t <- table(ankieta$DZIAŁ, ankieta$STAŻ)
+GoodmanKruskalTau(t)
+```
+
+Wartość współczynnika $\tau$ jest większa od zera, co wskazuje na zależności między zmiennymi. Dodatkowo w zadaniu 6b, na podstawie testu Freemana–Haltona przy poziomie istotności 0.05, odrzuciliśmy hipotezę o niezależności zmiennych. Niskie p-value świadczy o statystycznie istotnej zależności między zmiennymi. Uwzględniając oba wyniki, można wnioskować o istnieniu zależności między analizowanymi zmiennymi.
+
+## Zadanie 14
+
+Napisz własną funkcję do przeprowadzania analizy korespondencji. Funkcja jako argument przyjmuje tablicę dwudzielczą i zwraca obliczone wartości odpowiednich wektorów i macierzy, współrzędnych punktów oraz odpowiedni wykres.
+
+```{r zad14}
+correspondence_analysis <- function(t, variables = c("row", "col")) {
+  # macierz korespondencji
+  P <- prop.table(t)
+  # wektory częstości brzegowych
+  r <- rowSums(P)
+  c <- colSums(P)
+  
+  # macierz częstości wierszowych
+  D_r <- diag(r)
+  # macierz profili wierszowych
+  R <- solve(D_r) %*% P
+  # macierz częstości kolumnowych
+  D_c <- diag(c)
+  # macierz profili kolumnowych
+  C <- P %*% solve(D_c)
+  
+  # macierz residuów standaryzowanych
+  A <- solve(sqrtm(D_r)) %*% (P - r %*% t(c)) %*% solve(sqrtm(D_c))
+
+  # dekompozycja według wartości osobliwych macierzy
+  SVD <- svd(A)
+  # macierze ortogonalne
+  U <- SVD$u
+  V <- SVD$v
+  # macierz diagnolna o niezerowych wartościach osobliwych macierzy A
+  # ułożonych w porządku nierosnącym 
+  D <- diag(SVD$d)
+  
+  # współrzędne kategorii cech dla wierszy
+  F <- solve(sqrtm(D_r)) %*% U %*% D
+  # współrzędne kategorii cech dla kolumn
+  G <- solve(sqrtm(D_c)) %*% V %*% D
+  print(F)
+  print(G)
+  
+  # rysowanie wykresu, typ: principal
+  row_std <- F[, 1:2]
+  col_std <- G[, 1:2]
+  
+  ggplot(data.frame(x = c(row_std[, 1], col_std[, 1]),
+                    y = c(row_std[, 2], col_std[, 2]),
+                    label = c(rownames(t), colnames(t)),
+                    variable = c(rep(variables[1], nrow(t)), 
+                                 rep(variables[2], ncol(t)))), 
+         aes(x = x, y = y, color = variable)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
+    geom_point(aes(x = x, y = y)) +
+    geom_text(aes(x = x, y = y, label = label), vjust = 1.5) +
+    labs(x = "Dim 1", y = "Dim 2") +
+    theme_minimal()
+}
+```
+
+Korzystając z napisanej funkcji wykonano analizę korespondencji dla danych dotycząych stopnia zadowolenia ze szkoleń w kontekście dopasowania do indywidualnych potrzeb w pierwszym badanym okresie oraz stażu pracy.
+
+```{r zad14_dane}
+t <- table(ankieta$PYT_2, ankieta$STAŻ)
+correspondence_analysis(t, variables = c("PYT_2", "STAŻ"))
+```
+
+### Profile wierszy
+
+Z wykresu wynika, że profile dla odpowiedzi -1 oraz 2 są do siebie zbliżone. Obie znajdują się blisko początku układu współrzędnych, co sugeruje, że ich rozkład warunkowy jest zbliżony do rozkładu oczekiwanego przy niezależności zmiennych. Odpowiedź -2 również znajduje się blisko środka, ale nie tworzy wyraźnego skupiska z innymi punktami. Najbardziej wyróżnia się odpowiedź 1, która leży najdalej od środka i pozostałych kategorii, co wskazuje na jej odmienny profil.
+
+### Profile kolumn
+
+Z wykresu wynika, że profil odpowiedzi dla liczby lat stażu oznaczonego cyfrą 2 jest tym, który najbardziej przypomina rozkład oczekiwany przy niezależności zmiennych. W przypadku pozostałych kategorii punkty są bardziej oddalone od środka układu współrzędnych, co wskazuje na większe różnice między obserwowanymi a oczekiwanymi rozkładami. Żadna para punktów nie jest blisko siebie, co sugeruje, że ich rozkład warunkowy nie jest podobny.
+
+# Zadania dodatkowe
+
+## Zadanie \*1
+
+Napisano funkcję, która dla dwóch wektorów danych oblicza wartość poziomu krytycznego (p-value) w teście opartym na korelacji odległości.
+
+Statystyką testową w teście jest wartość
+
+$$
+dCor = \frac{
+\sqrt{\sum_{i=1}^R \sum_{j=1}^C \left( p_{ij} - p_{i+} p_{+ j} \right)^2}
+}{
+\left(
+\sum_{i=1}^R p_{i+}^2 \left(\sum_{i=1}^R p_{i+}^2 + 1 \right) - 2 \sum_{i=1}^R p_{i+}^3
+\right)^{1/4}
+\cdot
+\left(
+\sum_{j=1}^C p_{+ j}^2 \left(\sum_{j=1}^C p_{+ j}^2 + 1 \right) - 2 \sum_{j=1}^C p_{+ j}^3
+\right)^{1/4}
+}
+$$
+
+gdzie: - $p_{ij}$ to prawdopodobieństwo wystąpienia zdarzenia $i$ i $j$, - $p_{i+}$ to rozkład brzegowy zmiennej *x*, - $p_{+j}$ to rozkład brzegowy zmiennej *y*, - $R$ to liczba kategorii zmiennej *x*, - $C$ to liczba kategorii zmiennej *y*.
+
+Funkcja *dCor_pvalue* oblicza statystykę testową, a następnie wykonuje 1000 permutacji. P--value jest obliczane jest jako liczba permutacji, dla których wartość statystyki testowej jest większa lub równa wartości statystyki testowej podzielona przez liczbę wszystkich permutacji.
+
+```{r zad1_dodatkowe}
+dCor_pvalue <- function(x, y) {
+  
+  dCor <- function(x, y) {
+    observed <- table(x, y)
+    total <- sum(observed)
+    
+    probs <- prop.table(observed)
+    row_probs <- rowSums(probs)
+    col_probs <- colSums(probs)
+    
+    numerator <- 0
+    
+    for (i in 1:nrow(observed)) {
+      for (j in 1:ncol(observed)) {
+        numerator <- numerator + (probs[i, j] 
+                                  - row_probs[i] * col_probs[j])^2
+      }
+    }
+    numerator <- sqrt(numerator)
+    
+    denominator <- (
+      sum(row_probs^2 * (sum(row_probs^2) + 1)) - 2*sum(row_probs^3)
+      )^0.25*
+      (
+        sum(col_probs^2 * (sum(col_probs^2) + 1)) - 2*sum(col_probs^3)
+        )^0.25
+    return(numerator / denominator)
+  }
+  
+  statistic <- dCor(x, y)
+  
+  for (i in 1:1000) {
+    x_perm <- sample(x)
+    y_perm <- sample(y)
+    
+    statistic_perm <- dCor(x_perm, y_perm)
+    
+    if (statistic_perm >= statistic) {
+      p_value <- (i + 1) / 1000
+      break
+    }
+  }
+  return(p_value)
+}
+```
+
+Dla zmiennych **PYT_2** i **STAŻ** zweryfikowano hipotezę o niezależności przy użyciu napisanej funkcji.
+
+```{r zad1_dodatkowe_test}
+dCor_pvalue(ankieta$PYT_2, ankieta$CZY_KIER)
+```
+
+Na poziomie istotności 0.05 odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zakładamy, że zajmowane stanowisko kierownicze i stopień zadowolenia ze szkoleń są zmiennymi zależnymi.
+
+## Zadanie \*2
+
+Dla zadanych $\pi_1$ oraz $\pi_2$ pokazano, że wartość ryzyka względnego (RR) nie jest bardziej oddalona od wartości 1 (wartość odpowiadająca niezależności) niż wartość odpowiadającego ilorazu szans (OR).
+
+Wzór na ryzyko względne to $\frac{\pi_1}{pi_2}$, a wzór na iloraz szans to $\frac{\pi_1}{1 - \pi_1} / \frac{\pi_2}{1 - \pi_2}$.
+
+### Przypadek 1: $\pi_1 = \pi_2$
+
+W przypadku, gdy $\pi_1 = \pi_2$, zarówno ryzyko względne, jak i iloraz szans, są równe 1. Zatem wartość ryzyka względnego nie jest bardziej oddalona od wartości 1 niż wartość odpowiadającego ilorazu szans.
+
+### Przypadek 2: $\pi_1 > \pi_2$
+
+W przypadku, gdy $\pi_1 > \pi_2$, ryzyko względne jest większe od 1. Iloraz szans można rozpisać jako:
+
+$$
+\frac{\frac{\pi_1}{1 - \pi_1}}{\frac{\pi_2}{1 - \pi_2}} = \frac{\pi_1(1 - \pi_2)}{\pi_2(1 - \pi_1)} = \frac{\pi_1}{\pi_2} \cdot \frac{(1 - \pi_2)}{(1 - \pi_1)}.
+$$ Zatem jest to ryzyko względne pomnożone przez dodatkowy czynnik. Jako, że $\pi_2 < \pi_1$, to $1 - \pi_2 > 1 - \pi_1$. Zatem iloraz szans jest większy od ryzyka względnego i tym samym bardziej oddalony od 1.
+
+### Przypadek 3: $\pi_1 < \pi_2$
+
+Rozważając $\pi_1 < \pi_2$, ryzyko względne jest mniejsze od 1. Iloraz szans można rozpisać analogicznie, jak w przypadku 2. Tym razem $1 - \pi_2 < 1 - \pi_1$. Zatem iloraz szans jest mniejszy od ryzyka względnego i tym samym bardziej oddalony od 1.
+
+## Zadanie \*3
+
+Niech *D* oznacza posiadanie pewnej choroby, a *E* pozostawanie wystawionym na pewny czynnik ryzyka. W badaniach epidemiologicznych definuje się miarę *AR* nazywaną ryzykiem przypisanym (ang. *attributable risk*).
+
+### Interpretacja
+
+Niech $P(E′) = 1 − P(E)$, wówczas $AR = [P(D) − P(D|E′)]/P(D)$.
+
+Na podstawie wzoru możemy stwierdzić, że ryzyko przypisane (*AR*) wyraża część ogólnego ryzyka *P(D)*, którą można przypisać ekspozycji *E*. Wartość *AR* = 0 oznacza, że nie ma związku między czynnikiem ryzyka a chorobą. Wartość *AR* = 1 oznacza, że wszystkie przypadki choroby są spowodowane czynnikiem ryzyka.
+
+### Związek z ryzykiem względnym
+
+Pokażemy, że $AR = [P(E )(RR − 1)]/[1 + P(E )(RR − 1)]$.
+
+RR możemy wyrazić wzorem 
+
+
+\begin{equation}
+RR = \frac{P(D|E)}{P(D|E′)}.
+\end{equation}
+
+A ogólne ryzyko wyrazić jako
+
+\begin{equation}
+\begin{aligned}
+P(D) &= P(D \mid E) \cdot P(E) + P(D \mid E') \cdot P(E') \\
+     &\overset{\text{(1)}}{=} RR \cdot P(D \mid E') \cdot P(E) + P(D \mid E') \cdot (1 - P(E)) \\
+     &= P(D \mid E') \left( P(E) (RR - 1) + 1 \right).
+\end{aligned}
+\end{equation}
+
+Zatem
+$$
+AR = \frac{P(D) - P(D|E′)}{P(D)} \overset{\text{(2)}}{=} \frac{P(D|E′) \left( P(E) (RR - 1) + 1 - 1\right)}{P(D|E′) \left( P(E) (RR - 1) + 1 \right)} = \frac{P(E)(RR - 1)}{1 + P(E)(RR - 1)}.
+$$
