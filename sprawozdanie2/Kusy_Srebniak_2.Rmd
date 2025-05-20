@@ -684,7 +684,7 @@ correspondence_analysis <- function(t, variables = c("row", "col")) {
   # macierze ortogonalne
   U <- SVD$u
   V <- SVD$v
-  # macierz diagnolna o niezerowych wartościach osobliwych macierzy A
+  # macierz diagonalna o niezerowych wartościach osobliwych macierzy A
   # ułożonych w porządku nierosnącym 
   D <- diag(SVD$d)
   
@@ -814,7 +814,7 @@ Na poziomie istotności 0.05 odrzucamy hipotezę zerową na rzecz hipotezy alter
 
 Dla zadanych $\pi_1$ oraz $\pi_2$ pokazano, że wartość ryzyka względnego (RR) nie jest bardziej oddalona od wartości 1 (wartość odpowiadająca niezależności) niż wartość odpowiadającego ilorazu szans (OR).
 
-Wzór na ryzyko względne to $\frac{\pi_1}{pi_2}$, a wzór na iloraz szans to $\frac{\pi_1}{1 - \pi_1} / \frac{\pi_2}{1 - \pi_2}$.
+Wzór na ryzyko względne to $\frac{\pi_1}{\pi_2}$, a wzór na iloraz szans to $\frac{\pi_1}{1 - \pi_1} / \frac{\pi_2}{1 - \pi_2}$.
 
 ### Przypadek 1: $\pi_1 = \pi_2$
 
@@ -826,7 +826,9 @@ W przypadku, gdy $\pi_1 > \pi_2$, ryzyko względne jest większe od 1. Iloraz sz
 
 $$
 \frac{\frac{\pi_1}{1 - \pi_1}}{\frac{\pi_2}{1 - \pi_2}} = \frac{\pi_1(1 - \pi_2)}{\pi_2(1 - \pi_1)} = \frac{\pi_1}{\pi_2} \cdot \frac{(1 - \pi_2)}{(1 - \pi_1)}.
-$$ Zatem jest to ryzyko względne pomnożone przez dodatkowy czynnik. Jako, że $\pi_2 < \pi_1$, to $1 - \pi_2 > 1 - \pi_1$. Zatem iloraz szans jest większy od ryzyka względnego i tym samym bardziej oddalony od 1.
+$$ 
+
+Zatem jest to ryzyko względne pomnożone przez dodatkowy czynnik. Jako, że $\pi_2 < \pi_1$, to $1 - \pi_2 > 1 - \pi_1$. Zatem iloraz szans jest większy od ryzyka względnego i tym samym bardziej oddalony od 1.
 
 ### Przypadek 3: $\pi_1 < \pi_2$
 
@@ -853,7 +855,7 @@ RR możemy wyrazić wzorem
 RR = \frac{P(D|E)}{P(D|E′)}.
 \end{equation}
 
-A ogólne ryzyko wyrazić jako
+A ogólne ryzyko zapisać jako
 
 \begin{equation}
 \begin{aligned}
