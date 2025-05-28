@@ -143,4 +143,54 @@ ankieta['CZY_ZADOW_2'] <- ifelse(ankieta$PYT_3 %in% c(1, 2), 'zadowolony', 'niez
 # table of CZY_ZADOW and CZY_ZADOW_2 counts for mcnemar test
 t <- table(ankieta$CZY_ZADOW, ankieta$CZY_ZADOW_2)
 mcnemar.test(t)
-           
+
+# zad 5
+
+t <- as.table(matrix(c(10, 2, 1, 1, 0, 0, 15, 1, 1, 0, 1, 1, 32, 6, 0, 0, 0, 1, 96, 3, 1, 1, 0, 1 ,26), 
+                     nrow = 5, 
+                     byrow = TRUE,
+                     dimnames = list("Pytanie 1" = -2:2,
+                                     "Pytanie 2" = -2:2)))  
+mcnemar.test(t)
+IW_test <- function(t) {
+  G2 <- 0
+  n <- sum(t)
+  for (i in 1:nrow(t)) {
+    for (j in 1:ncol(t)) {
+      if (t[i, j] > 0) {
+        G2 <- G2 + t[i, j] * log(t[i, j] / (t[i, j] + t[j, i]) * 2)
+      }
+    }
+  }
+  p_value <- 1 - pchisq(2 * G2, df = nrow(t) * (ncol(t) - 1) / 2)
+  print(paste("p-value: ", p_value))
+}
+IW_test(t). # przyjmuje H0, czyli jest symetria
+
+# zad 6
+t3 <- as.table(matrix(c(117, 104, 177, 44), 
+                     nrow = 2, 
+                     byrow = TRUE,
+                     dimnames = list("Metoda" = c("Leczenie A", "Leczenie B"),
+                                     "Wynik leczenia" = c("Poprawa", "Brak"))))
+t4 <- as.table(matrix(c(17, 101, 2, 36), 
+                      nrow = 2, 
+                      byrow = TRUE,
+                      dimnames = list("Metoda" = c("Leczenie A", "Leczenie B"),
+                                      "Reakcja" = c("Poprawa", "Brak"))))
+t5 <- as.table(matrix(c(100, 3, 175, 8), 
+                      nrow = 2, 
+                      byrow = TRUE,
+                      dimnames = list("Metoda" = c("Leczenie A", "Leczenie B"),
+                                      "Reakcja" = c("Poprawa", "Brak"))))
+
+# P(poprawa|leczenie A) = 117/(117+104) = 0.5294118
+# P(poprawa|leczenie B) = 177/(177+44) = 0.8015873
+# P(poprawa|leczenie A, choroby współ) = 17/(17+101) = 0.1445783
+# P(poprawa|leczenie B, choroby współ) = 2/(2+36) = 0.05263158
+# P(poprawa|leczenie A, brak choroby współ) = 100/(100+3) = 0.9701493
+# P(poprawa|leczenie B, brak choroby współ) = 175/(175+8) = 0.9565217
+
+chisq.test(t3)  # odrzuca H0, czyli jest zależność
+chisq.test(t4)  # przyjmuje H0, czyli jest niezależność
+chisq.test(t5)  # przyjmuje H0, czyli jest niezależność
