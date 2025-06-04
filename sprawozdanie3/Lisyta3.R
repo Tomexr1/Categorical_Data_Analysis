@@ -194,3 +194,163 @@ t5 <- as.table(matrix(c(100, 3, 175, 8),
 chisq.test(t3)  # odrzuca H0, czyli jest zależność
 chisq.test(t4)  # przyjmuje H0, czyli jest niezależność
 chisq.test(t5)  # przyjmuje H0, czyli jest niezależność
+
+# zad 8
+library(dplyr)
+
+# Model [123]
+
+tab1 <- ankieta |> as_tibble()  %>%
+  group_by(CZY_KIER, PYT_2, STAŻ) %>%
+  summarise(count = n(), .groups = 'drop')
+
+model <- glm(count ~ CZY_KIER * PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+tab1$fitted <- fitted(model)
+
+# proporcje odpowiedzi na PYT_2 wśród osób na stanowisku kierowniczym (faktyczne + dopasowane przez model)
+subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
+            p_model = sum(fitted) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted), .groups = 'drop')
+
+# proporcje osób pracujących na stanowisku kierownicznym wśród osób pracujących krócej niż rok (faktyczne + dopasowane przez model)
+subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count), 
+            p_model = sum(fitted) / sum(subset(tab1, STAŻ == 1)$fitted), .groups = 'drop')
+
+# proporcje osób pracujących na stanowisku kierownicznym wśród osób pracujących dłużej niż 3 lata (faktyczne + dopasowane przez model)
+subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count), 
+            p_model = sum(fitted) / sum(subset(tab1, STAŻ == 3)$fitted), .groups = 'drop')
+
+# Model [12 23]
+
+model <- glm(count ~ CZY_KIER*PYT_2 + PYT_2*STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+tab1$fitted2 <- fitted(model)
+
+# proporcje odpowiedzi na PYT_2 wśród osób na stanowisku kierowniczym (faktyczne + dopasowane przez model)
+subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
+            p_model = sum(fitted2) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted2), .groups = 'drop')
+
+# proporcje osób pracujących na stanowisku kierownicznym wśród osób pracujących krócej niż rok (faktyczne + dopasowane przez model)
+subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count), 
+            p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 1)$fitted2), .groups = 'drop')
+
+# proporcje osób pracujących na stanowisku kierownicznym wśród osób pracujących dłużej niż 3 lata (faktyczne + dopasowane przez model)
+subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count), 
+            p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 3)$fitted2), .groups = 'drop')
+
+# zad 9
+
+# a) zmienne CZY_KIER, PYT_2, STAŻ są wzajemnie niezależne
+# H0: [1 2 3]
+M0 <- glm(count ~ CZY_KIER + PYT_2 + STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+# H1: [12 23]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value))  # nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+# H1: [13 23]
+M1 <- glm(count ~ CZY_KIER * STAŻ + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value))  # też nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+# H1: [12 13]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value))  # też nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+
+# b) zmienna PYT_2 niezależna od CZY_KIER i STAŻ
+# H0: [13 2]
+M0 <- glm(count ~ CZY_KIER * STAŻ + PYT_2, 
+    data = tab1, 
+    family = poisson)
+
+# H1: [12 13]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value)) # nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+
+# H1: [12 13 23]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ + PYT_2 * STAŻ,
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value))  # nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+
+# H1: [123]
+M1 <- glm(count ~ CZY_KIER * PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value)) # nadal nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+
+# c) zmienna PYT_2 jest warunkowo niezależna od CZY_KIER przy ustalonej wartości STAŻ
+# H0: [13 23]
+M0 <- glm(count ~ CZY_KIER * STAŻ + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+# H1: [12 13 23]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value)) # nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+
+# H1: [123]
+M1 <- glm(count ~ CZY_KIER * PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+print(paste("p-value: ", p_value)) # nadal nie odrzucamy H0, model bez zależności jest okej, nie ma zależności pomiędzy zmiennymi?
+
