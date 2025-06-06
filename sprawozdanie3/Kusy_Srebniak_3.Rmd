@@ -1,0 +1,722 @@
+---
+title: "Analiza danych ankietowych"
+author:
+- Joanna Kusy
+- Tomasz Srebniak
+subtitle: Sprawozdanie 3
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    number_sections: true
+    fig_caption: true
+    fig_width: 5
+    fig_height: 4
+fontsize: 12pt
+header-includes:
+  - \usepackage{fontspec}
+  - \usepackage{polyglossia}
+  - \setmainlanguage{polish}
+  - \setmainfont{Times New Roman}
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+if (!require(knitr)) install.packages("knitr")
+if (!require(readr)) install.packages("readr")
+if (!require(latex2exp)) install.packages("latex2exp")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(vctrs)) install.packages("vctrs")
+if (!require(tidyr)) install.packages("tidyr")
+if (!require(xtable)) install.packages("xtable")
+library(binom)
+library(ggstatsplot)
+library(grid)
+library(vcd)
+library(knitr)
+library(DescTools)
+library(expm)
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "", fig.align = "center")
+knitr::opts_chunk$set(dev = "cairo_pdf")
+
+```
+
+\newpage
+
+# Część I oraz II
+
+## Zadanie 1
+
+Napisano funkcję, która zwraca p--wartość w warunkowym teście symetrii w przypadku tabeli 2x2.
+
+```{r zad1}
+symmetry_test <- function(t) {
+  n12 <- t[1, 2]
+  n21 <- t[2, 1]
+  
+  if (n12 < (n12+n21)/2) {
+    s <- 0
+    for (i in 0:n12) {
+      s <- s + choose(n12+n21, i) * 0.5^i * 0.5^(n12+n21-i)
+    }
+    p_value <- 2 * s
+  }
+  if (n12 > (n12+n21)/2) {
+    s <- 0
+    for (i in n12:(n12+n21)) {
+      s <- s + choose(n12+n21, i) * 0.5^i * 0.5^(n12+n21-i)
+    }
+    p_value <- 2 * s
+  }
+  else {
+    p_value <- 1
+  }
+  print(paste("p-value: ", p_value))
+  }
+```
+
+## Zadanie 2
+
+W poniższej tabeli umieszczono dane dotyczące reakcji na lek po godzinie od jego przyjęcia dla dwóch różnych leków przeciwbólowych stosowanych w migrenie. Leki zostały zaaplikowane grupie pacjentów w dwóch różnych atakach bólowych. Na podstawie danych zweryfikowano hipotezę, że leki te są jednakowo skuteczne.
+
+```{r zad2_table, echo=FALSE}
+t <- as.table(matrix(c(1, 2, 5, 4), 
+                     nrow = 2, 
+                     byrow = FALSE,
+                     dimnames = list("Reakcja na lek A" = c("Negatywna", "Pozytywna"),
+                                     "Reakcja na lek B" = c("Negatywna", "Pozytywna"))))
+t
+```
+
+### Test McNemara z poprawką na ciągłość
+
+```{r zad2_mcnemar}
+mcnemar.test(t)
+```
+
+Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej o jednorodności rozkładów brzegowych. Zakładamy, że leki są jednakowo skuteczne.
+
+### Warunkowy test symetrii
+
+```{r zad2_symmetry_test}
+symmetry_test(t)
+```
+
+Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej o jednorodności rozkładów brzegowych. Zakładamy, że leki są jednakowo skuteczne.
+
+## Zadanie 3
+
+Przeprowadzono symulacje w celu porównania mocy testu $\text{Z}$ i testu $\text{Z}_0$.
+
+Implementacja testu $\text{Z}$ oraz testu $\text{Z}_0$.
+
+```{r zad3_tests}
+z_test <- function(t) {
+  n <- sum(t)
+  n12 <- t[1, 2]
+  n21 <- t[2, 1]
+  D <- (n12 - n21) / n
+  
+  p <- prop.table(t)
+  p1_plus <- rowSums(p)[1]
+  p_plus1 <- colSums(p)[1]
+  
+  s <- (
+    p1_plus * (1 - p1_plus) + p_plus1 * (1 - p_plus1) - 2 
+    * (p[1, 1] * p[2, 2] + p[1, 2] * p[2, 1])
+    ) / n
+  
+  z <- D / sqrt(s)
+  
+  p_value <- 2 * (1 - pnorm(abs(z)))
+  p_value |> as.numeric()
+} 
+
+z0_test <- function(t) {
+  z0 <- (t[1, 2] - t[2, 1]) / sqrt(t[1, 2] + t[2, 1])
+  p_value <- 2 * (1 - pnorm(abs(z0)))
+  p_value
+}
+```
+
+Funkcja szacująca moc testu $\text{Z}$ oraz testu $\text{Z}_0$ w różnych punktach hipotezy alternatywnej przy pomocy metody Monte Carlo.
+
+```{r zad3_simulation_fun}
+power <- function(n, MC = 1000) {
+  
+  p1 <- 0.5
+  x <- sum(rbinom(n, 1, p1))
+  X <- c(x, n-x)
+  
+  plot_data <- data.frame()
+  for (p2 in seq(0, 1, 0.01)) {
+    MC_z <- 0
+    MC_z0 <- 0
+    for (i in 1:MC) {
+      y <- sum(rbinom(n, 1, p2))
+      Y <- c(y, n-y)
+      
+      t <- rbind(X,Y)
+      MC_z <- MC_z + (z_test(t) < 0.05)
+      MC_z0 <- MC_z0 + (z0_test(t) < 0.05)
+    }
+    MC_z <- MC_z / MC
+    MC_z0 <- MC_z0 / MC
+    
+    plot_data <- rbind(
+      plot_data, cbind(data.frame(p2=p2), 
+                       data.frame(method = c('Z_test', 'Z0_test'),
+                       pow = c(MC_z, MC_z0)))
+      )
+  }
+  
+  split_dfs <- split(plot_data, plot_data$method)
+  z_power <- split_dfs[["Z_test"]][, "pow"]
+  z0_power <- split_dfs[["Z0_test"]][, "pow"]
+  ggplot(plot_data, aes(x=p2, y=pow, color=method, linetype=method)) +
+    geom_line() +
+    geom_hline(yintercept = 0.05, linetype="dashed") +
+    scale_color_brewer(palette = "Set1", name = "Metoda") +
+    scale_linetype_discrete(name = "Metoda") +
+    labs(title = "Moc testu dla różnych wartości p2", 
+         x = "p2", 
+         y = "Moc testu") +
+    theme_minimal()
+}
+```
+
+Wyniki symulacji dla $n = 50$.
+
+```{r zad3_simulation_50, echo=FALSE}
+power(50)
+```
+
+Wyniki symulacji dla $n = 100$.
+
+```{r zad3_simulation_100, echo=FALSE}
+power(100)
+```
+
+Wyniki symulacji dla $n = 1000$.
+
+```{r zad3_simulation_1000, echo=FALSE}
+power(1000)
+```
+
+Na podstawie przeprowadzonych symulacji można zauważyć, moc obu testów wzrasta wraz ze wzrostem rozmiaru próby. Dodatkowo moc testu $\text{Z}$ jest wyższa niż moc testu $\text{Z}_0$ dla wszystkich wartości $p_2$ oraz dla wszystkich rozmiarów próby.
+
+Test $\text{Z}$ częściej popełniał błąd I rodzaju, za to rzadziej błąd II rodzaju. W przypadku testu $\text{Z}_0$ było na odwrót.
+
+## Zadanie 4
+
+Dla danych dołączonych do pierwszej listy zadań, na podstawie zmiennych **CZY_ZADW** oraz **CZY_ZADW_2**, zweryfikowano hipotezę, że zadowolenie ze szkoleń w pierwszym badanym okresie i w drugim badanym okresie pierwszego badania odpowiada modelowi symetrii. Przyjęto poziom istotności 0.05.
+
+```{r zad4_ankieta, echo=FALSE}
+ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/sprawozdanie1/ankieta.csv', header = TRUE, sep = ";", fileEncoding = "Latin2")
+ankieta['CZY_ZADOW'] <- ifelse(ankieta$PYT_2 %in% c(1, 2), 'zadowolony', 'niezadowolony')
+ankieta['CZY_ZADOW_2'] <- ifelse(ankieta$PYT_3 %in% c(1, 2), 'zadowolony', 'niezadowolony')
+```
+
+```{r zad4}
+t <- table(ankieta$CZY_ZADOW, ankieta$CZY_ZADOW_2)
+mcnemar.test(t)
+```
+
+Na poziomie istotności $\alpha = 0.05$ odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zakładamy, że zadowolenie ze szkoleń w pierwszym badanym okresie i w drugim badanym okresie nie odpowiada modelowi symetrii. Na podstawie uzyskanych wyników możemy wnioskować, że poziom zadowolenia ze szkoleń uległ zmianie.
+
+## Zadanie 5
+
+W firmie, o której mowa w zadaniu 1 z listy 1, wdrożono pewne działania w celu poprawy komfortu pracy. Następnie badaną grupę respondentów ponownie poproszono o odpowiedź na pytanie dotyczące oceny podejścia firmy do umożliwiania wdrażania wiedzy zdobytej na szkoleniach. W poniższej tabeli przedstawiono tablicę dwudzielczą uwzględniającą odpowiedzi na pytanie w obu tych okresach. Na podstawie danych zweryfikowano hipotezę, że odpowiedzi w pierwszym badanym okresie i w drugim okresie odpowiadają modelowi symetrii.
+
+```{r zad5_table, echo=FALSE}
+t <- as.table(matrix(c(10, 2, 1, 1, 0, 0, 15, 1, 1, 0, 1, 1, 32, 6, 0, 0, 0, 1, 96, 3, 1, 1, 0, 1 ,26), 
+                     nrow = 5, 
+                     byrow = TRUE,
+                     dimnames = list("Pytanie 1" = -2:2,
+                                     "Pytanie 2" = -2:2)))
+t
+```
+
+### Test Bowkera
+
+```{r zad5_bowker}
+mcnemar.test(t)
+```
+
+Test Bowkera zwrócił p--value równe NA, ponieważ w mianowniku pojawiła się wartość 0.
+
+### Test oparty na ilorazie wiarygodności (IW)
+
+```{r zad5_likelihood_ratio}
+IW_test <- function(t) {
+  G2 <- 0
+  n <- sum(t)
+  for (i in 1:nrow(t)) {
+    for (j in 1:ncol(t)) {
+      if (t[i, j] > 0) {
+        G2 <- G2 + t[i, j] * log(t[i, j] / (t[i, j] + t[j, i]) * 2)
+      }
+    }
+  }
+  p_value <- 1 - pchisq(2 * G2, df = nrow(t) * (ncol(t) - 1) / 2)
+  print(paste("p-value: ", p_value))
+}
+IW_test(t)
+```
+
+Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej o jednorodności rozkładów brzegowych. Zakładamy, że odpowiedzi w pierwszym badanym okresie i w drugim okresie odpowiadają modelowi symetrii. Na podstawie uzyskanych wyników możemy przyjąć hipotezę, że ocena podejścia firmy nie uległa zmianie.
+
+# Część III
+
+## Zadanie 6
+
+W pewnym badaniu porównywano skuteczność dwóch metod leczenia -- Leczenie A to nowa procedura, a Leczenie B to stara procedura. Przeanalizowano dane przedstawione w poniższych tabelach i oceniono, czy dla danych występuje paradoks Simpsona.
+
+```{r zad6_tables, echo=FALSE}
+t3 <- as.table(matrix(c(117, 104, 177, 44), 
+                     nrow = 2, 
+                     byrow = TRUE,
+                     dimnames = list("Metoda" = c("Leczenie A", "Leczenie B"),
+                                     "Wynik leczenia" = c("Poprawa", "Brak"))))
+t4 <- as.table(matrix(c(17, 101, 2, 36), 
+                      nrow = 2, 
+                      byrow = TRUE,
+                      dimnames = list("Metoda" = c("Leczenie A", "Leczenie B"),
+                                      "Reakcja" = c("Poprawa", "Brak"))))
+t5 <- as.table(matrix(c(100, 3, 175, 8), 
+                      nrow = 2, 
+                      byrow = TRUE,
+                      dimnames = list("Metoda" = c("Leczenie A", "Leczenie B"),
+                                      "Reakcja" = c("Poprawa", "Brak"))))
+```
+
+### Dane dla całej grupy
+
+```{r zad6_t3, echo=FALSE}
+t3
+```
+
+P(poprawa\|leczenie A) = `r round(t3[1, 1] / sum(t3[1, ]), 2)`
+
+P(poprawa\|leczenie B) = `r round(t3[2, 1] / sum(t3[2, ]), 2)`
+
+Test chi-kwadrat dla całej grupy
+
+```{r zad6_chi2_both}
+chisq.test(t3)
+```
+
+Na poziomie istotności $\alpha = 0.05$ odrzucamy hipotezę zerową na rzecz hipotezy alternatywnej. Zakładamy, że zmienne są zależne.
+
+### Dane dla pacjentów z chorobami współistniejącymi
+
+```{r zad6_t4, echo=FALSE}
+t4
+```
+
+P(poprawa\|leczenie A, choroby współ)= `r round(t4[1, 1] / sum(t4[1, ]), 2)`
+
+P(poprawa\|leczenie B, choroby współ)= `r round(t4[2, 1] / sum(t4[2, ]), 2)`
+
+Test chi-kwadrat dla pacjentów z chorobami współistniejącymi
+
+```{r zad6_chi2_one}
+chisq.test(t4)
+```
+
+Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienne są niezależne.
+
+### Dane dla pacjentów bez chorób współistniejących
+
+```{r zad6_t5, echo=FALSE}
+t5
+```
+
+P(poprawa\|leczenie A, brak chorób współ)= `r round(t5[1, 1] / sum(t5[1, ]), 2)`
+
+P(poprawa\|leczenie B, brak chorób współ)= `r round(t5[2, 1] / sum(t5[2, ]), 2)`
+
+Test chi-kwadrat dla pacjentów bez chorób współistniejących
+
+```{r zad6_chi2_two}
+chisq.test(t5)
+```
+
+Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienne są niezależne.
+
+### Wniosek
+
+Na podstawie przeprowadzonych testów chi-kwadrat możemy zauważyć, że zależność pomiędzy metodą leczenia a wynikiem leczenia występuje dla całej grupy pacjentów. Natomiast dla pacjentów z chorobami współistniejącymi oraz bez chorób współistniejących taka zależność już nie występuje. Mamy zatem do czynienia z paradoksem Simpsona, który polega na zmianie "kierunku" związku między dwiema zmiennymi, przy uwzględnieniu trzeciej zmiennej.
+
+## Zadanie 7
+
+Dla danych z listy 1, przyjmując za zmienną 1 zmienną **CZY_KIER**, za zmienną 2 – zmienną **PYT_2** i za zmienną 3 – zmienna **STAŻ**, podano interpretacje nastepujacych modeli log-liniowych:
+
+### [1 3]
+
+Zmienne **CZY_KIER** i **STAŻ** są niezależne.
+
+### [13]
+
+Zmienne **CZY_KIER** i **PYT_2** są nie są niezależne.
+
+### [1 2 3]
+
+Zmienne **CZY_KIER**, **PYT_2** i **STAŻ** są niezależne.
+
+### [12 3]
+
+Zmienne **CZY_KIER** i **PYT_2** nie są niezależne, a zmienna **STAŻ** jest niezależna od zmiennych **CZY_KIER** i **PYT_2**.
+
+### [12 13]
+
+Przy ustalonej wartości zmiennej **CZY_KIER** zmienne **PYT_2** i **STAŻ** są niezależne. Inaczej mówiąc, zmienne **PYT_2** i **STAŻ** są warunkowo niezależne.
+
+### [1 23]
+
+Zmienna **CZY_KIER** jest niezależna od zmiennych **PYT_2** i **STAŻ**. Zmienne **PYT_2** i **STAŻ** nie są niezależne.
+
+# Część IV i V
+
+## Zadanie 8
+
+Rozważono dwa modele log-liniowy [123] i [12 23] dla zmiennych opisanych w zadaniu 7 oszacowano prawdopobiebieństwa:
+
+-   że osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń;
+
+-   że osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym;
+
+-   że osoba o stażu pracy powyżej trzech lat nie pracuje na stanowisku kierowniczym.
+
+Tabela z danymi
+
+```{r zad8_model_1_tab}
+tab1 <- ankieta |> as_tibble()  %>%
+  group_by(CZY_KIER, PYT_2, STAŻ) %>%
+  summarise(count = n(), .groups = 'drop')
+```
+
+### Model [123]
+
+Zdefiniowanie i dopasowanie modelu
+
+```{r zad8_model_1}
+model <- glm(count ~ CZY_KIER * PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+tab1$fitted1 <- fitted(model)
+```
+
+-   osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń
+
+```{r zad8_model_1_prob1_show, eval=FALSE}
+subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
+            p_model = sum(fitted1) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted1),
+            .groups = 'drop')
+```
+
+```{r zad8_model_1_prob1, echo=FALSE}
+res1 = subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
+            p_model = sum(fitted1) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted1),
+            .groups = 'drop')
+res1
+```
+
+Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **PYT_2** = 2. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res1[4, 2] - res1[4, 3]), 4)`, przy czym liczność uzyskana z tabeli była wyższa.
+
+-   osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym
+
+```{r zad8_model_1_prob2_show, eval=FALSE}
+subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
+            p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 1)$fitted1), 
+            .groups = 'drop')
+```
+
+```{r zad8_model_1_prob2, echo=FALSE}
+res2 = subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
+            p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 1)$fitted1), .groups = 'drop')
+res2
+```
+
+Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **CZY_KIER** = Tak. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res2[2, 2] - res2[2, 3]), 4)`, przy czym liczność uzyskana z tabeli była wyższa.
+
+-   osoba o stażu pracy powyżej trzech lat nie pracuje na stanowisku kierowniczym
+
+```{r zad8_model_1_prob3_show, eval=FALSE}
+subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count),
+            p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 3)$fitted1), 
+            .groups = 'drop')
+```
+
+```{r zad8_model_1_prob3, echo=FALSE}
+res3 = subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count),
+            p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 3)$fitted1), .groups = 'drop')
+res3
+```
+
+Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy dłuższym niż trzy lata nie pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na pierwszy wiersz tabeli, gdzie **CZY_KIER** = Nie. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res3[1, 2] - res3[1, 3]), 4)`, przy czym wartość przewidywana przez model była wyższa.
+
+### Model [12 23]
+
+Zdefiniowanie i dopasowanie modelu
+
+```{r zad8_model_2}
+model <- glm(count ~ CZY_KIER*PYT_2 + PYT_2*STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+tab1$fitted2 <- fitted(model)
+```
+
+-   osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń
+
+```{r zad8_model_2_prob1_show, eval=FALSE}
+subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
+            p_model = sum(fitted2) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted2),
+            .groups = 'drop')
+```
+
+```{r zad8_model_2_prob1, echo=FALSE}
+res1 = subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>% 
+  summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
+            p_model = sum(fitted2) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted2),
+            .groups = 'drop')
+res1
+
+```
+
+Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **PYT_2** = 2. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res1[4, 2] - res1[4, 3]), 4)`, przy czym liczność uzyskana z tabeli była wyższa.
+
+-   osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym
+
+```{r zad8_model_2_prob2_show, eval=FALSE}
+subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
+            p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 1)$fitted2), 
+            .groups = 'drop')
+```
+
+```{r zad8_model_2_prob2, echo=FALSE}
+res2 = subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
+            p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 1)$fitted2), .groups = 'drop')
+res2
+```
+
+Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **CZY_KIER** = Tak. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res2[2, 2] - res2[2, 3]), 4)`, przy czym wartość przewidywana przez model była wyższa.
+
+-   osoba o stażu pracy powyżej trzech lat nie pracuje na stanowisku kierowniczym
+
+```{r zad8_model_2_prob3_show, eval=FALSE}
+subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count),
+            p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 3)$fitted2), 
+            .groups = 'drop')
+```
+
+```{r zad8_model_2_prob3, echo=FALSE}
+res3 = subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
+  summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count),
+            p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 3)$fitted2), .groups = 'drop')
+res3
+```
+
+Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy dłuższym niż trzy lata nie pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na pierwszy wiersz tabeli, gdzie **CZY_KIER** = Nie. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res3[1, 2] - res3[1, 3]), 4)`, przy czym wartość przewidywana przez model była wyższa.
+
+## Zadanie 9
+
+Dla danych wskazanych w zadaniu 7 zweryfikowano następujące hipotezy:
+
+### Zmienne losowe **CZY_KIER**, **PYT_2** i **STAŻ** sa wzajemnie niezależne
+
+$\text{M}_0$ = [1 2 3]
+
+$\text{H}_0$ : M = $\text{M}_0$
+
+```{r zad9a_h0}
+M0 <- glm(count ~ CZY_KIER + PYT_2 + STAŻ, 
+    data = tab1, 
+    family = poisson)
+```
+
+#### Nadmodel [12 23] \
+\
+$\text{M}_1$ = [12 23]
+
+$\text{H}_1$ : M = $\text{M}_1$ i M $\neq$ [1 2 3]
+
+```{r zad9a1_h1}
+M1 <- glm(count ~ CZY_KIER * PYT_2 + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+```
+
+```{r zad9a_test}
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienne losowe **CZY_KIER**, **PYT_2** i **STAŻ** są wzajemnie niezależne.
+
+#### Nadmodel [13 23] \
+\
+$\text{M}_1$ = [13 23]
+
+$\text{H}_1$: $\text{M}_1$ i M $\neq$ [1 2 3]
+
+```{r zad9a2, echo=FALSE}
+M1 <- glm(count ~ CZY_KIER * STAŻ + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienne losowe **CZY_KIER**, **PYT_2** i **STAŻ** są wzajemnie niezależne.
+
+#### Nadmodel [12 13] \
+\
+$\text{M}_1$ = [12 13]
+
+$\text{H}_1$: $\text{M}_1$ i M $\neq$ [1 2 3]
+
+```{r zad9a3, echo=FALSE}
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienne losowe **CZY_KIER**, **PYT_2** i **STAŻ** są wzajemnie niezależne.
+
+### Zmienna losowa **PYT_2** jest niezależna od pary zmiennych **CZY_KIER** i **STAŻ**
+
+$\text{M}_0$ = [13 2] 
+
+$\text{H}_0$ : M = $\text{M}_0$
+
+#### Nadmodel [12 13] \
+\
+$\text{M}_1$ = [12 13]
+
+$\text{H}_1$ : M = $\text{M}_1$ i M $\neq$ [13 2]
+
+```{r zad9b1_h1, echo=FALSE}
+M0 <- glm(count ~ CZY_KIER * STAŻ + PYT_2, 
+    data = tab1, 
+    family = poisson)
+
+# H1: [12 13]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ, 
+    data = tab1, 
+    family = poisson)
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienna losowa **PYT_2** jest niezależna od pary zmiennych **CZY_KIER** i **STAŻ**.
+
+#### Nadmodel [12 13 23]\ 
+\
+$\text{M}_1$ = [12 13 23]
+
+$\text{H}_1$ : M = $\text{M}_1$ i M $\neq$ [13 2]
+
+```{r zad9b2_h1, echo=FALSE}
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ + PYT_2 * STAŻ,
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienna losowa **PYT_2** jest niezależna od pary zmiennych **CZY_KIER** i **STAŻ**.
+
+#### Nadmodel [123] \
+\
+$\text{M}_1$ = [123]
+
+$\text{H}_1$ : M = $\text{M}_1$ i M $\neq$ [13 2]
+
+```{r zad9b3_h1, echo=FALSE}
+M1 <- glm(count ~ CZY_KIER * PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienna losowa **PYT_2** jest niezależna od pary zmiennych **CZY_KIER** i **STAŻ**.
+
+### Zmienna losowa **PYT_2** jest niezależna od zmiennej **CZY_KIER**, przy ustalonej wartości zmiennej **STAŻ**
+
+$\text{M}_0$ = [13 23]
+
+### Nadmodel [12 13 23] \
+$\text{M}_1$ = [12 13 23]
+
+$\text{H}_1$ : M = $\text{M}_1$ i M $\neq$ [13 23]
+
+```{r zad9c1_h1, echo=FALSE}
+M0 <- glm(count ~ CZY_KIER * STAŻ + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+# H1: [12 13 23]
+M1 <- glm(count ~ CZY_KIER * PYT_2 + CZY_KIER * STAŻ + PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienna losowa **PYT_2** jest niezależna od zmiennej **CZY_KIER**, przy ustalonej wartości zmiennej **STAŻ**.
+
+### Nadmodel [123] \
+$\text{M}_1$ = [123]
+
+$\text{H}_1$ : M = $\text{M}_1$ i M $\neq$ [13 23]
+
+```{r zad9c2_h1, echo=FALSE}
+M1 <- glm(count ~ CZY_KIER * PYT_2 * STAŻ, 
+    data = tab1, 
+    family = poisson)
+
+an <- anova(M0, M1)
+deviance <- an$Deviance[2]
+df <- an$Df[2]
+p_value <- 1 - pchisq(deviance, df)
+```
+
+P--value uzyskane w teście wynosi `r round(p_value, 4)`. Na poziomie istotności $\alpha = 0.05$ nie mamy podstaw do odrzucenia hipotezy zerowej. Zakładamy, że zmienna losowa **PYT_2** jest niezależna od zmiennej **CZY_KIER**, przy ustalonej wartości zmiennej **STAŻ**.
