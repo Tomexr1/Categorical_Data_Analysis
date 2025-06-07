@@ -215,7 +215,7 @@ Test $\text{Z}$ częściej popełniał błąd I rodzaju, za to rzadziej błąd I
 Dla danych dołączonych do pierwszej listy zadań, na podstawie zmiennych **CZY_ZADW** oraz **CZY_ZADW_2**, zweryfikowano hipotezę, że zadowolenie ze szkoleń w pierwszym badanym okresie i w drugim badanym okresie pierwszego badania odpowiada modelowi symetrii. Przyjęto poziom istotności 0.05.
 
 ```{r zad4_ankieta, echo=FALSE}
-ankieta <- read.csv('/Users/joannakusy/pwr/rok3/analiza_danych_ankietowych/Categorical_Data_Analysis/sprawozdanie1/ankieta.csv', header = TRUE, sep = ";", fileEncoding = "Latin2")
+ankieta <- read.csv('/Users/tomasz/Politechnika/semestr_6/ankiety/ankieta.csv', header = TRUE, sep = ";", fileEncoding = "Latin2")
 ankieta['CZY_ZADOW'] <- ifelse(ankieta$PYT_2 %in% c(1, 2), 'zadowolony', 'niezadowolony')
 ankieta['CZY_ZADOW_2'] <- ifelse(ankieta$PYT_3 %in% c(1, 2), 'zadowolony', 'niezadowolony')
 ```
@@ -357,11 +357,11 @@ Dla danych z listy 1, przyjmując za zmienną 1 zmienną **CZY_KIER**, za zmienn
 
 ### [1 3]
 
-Zmienne **CZY_KIER** i **STAŻ** są niezależne.
+Zmienne **CZY_KIER** i **STAŻ** są niezależne i **PYT_2** ma rozkład równomierny.
 
 ### [13]
 
-Zmienne **CZY_KIER** i **PYT_2** są nie są niezależne.
+Zmienne **CZY_KIER** i **PYT_2** nie są niezależne i **STAŻ** ma rozkład równomierny.
 
 ### [1 2 3]
 
@@ -397,6 +397,7 @@ Tabela z danymi
 tab1 <- ankieta |> as_tibble()  %>%
   group_by(CZY_KIER, PYT_2, STAŻ) %>%
   summarise(count = n(), .groups = 'drop')
+tab1 |> kable()
 ```
 
 ### Model [123]
@@ -417,15 +418,15 @@ tab1$fitted1 <- fitted(model)
 subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
             p_model = sum(fitted1) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted1),
-            .groups = 'drop')
+            .groups = 'drop') 
 ```
 
 ```{r zad8_model_1_prob1, echo=FALSE}
 res1 = subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>% 
   summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
             p_model = sum(fitted1) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted1),
-            .groups = 'drop')
-res1
+            .groups = 'drop') 
+res1 |> kable()
 ```
 
 Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **PYT_2** = 2. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res1[4, 2] - res1[4, 3]), 4)`, przy czym liczność uzyskana z tabeli była wyższa.
@@ -436,14 +437,14 @@ Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba pracująca n
 subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
             p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 1)$fitted1), 
-            .groups = 'drop')
+            .groups = 'drop') 
 ```
 
 ```{r zad8_model_1_prob2, echo=FALSE}
 res2 = subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
             p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 1)$fitted1), .groups = 'drop')
-res2
+res2 |> kable()
 ```
 
 Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **CZY_KIER** = Tak. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res2[2, 2] - res2[2, 3]), 4)`, przy czym liczność uzyskana z tabeli była wyższa.
@@ -461,7 +462,7 @@ subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
 res3 = subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count),
             p_model = sum(fitted1) / sum(subset(tab1, STAŻ == 3)$fitted1), .groups = 'drop')
-res3
+res3 |> kable()
 ```
 
 Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy dłuższym niż trzy lata nie pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na pierwszy wiersz tabeli, gdzie **CZY_KIER** = Nie. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res3[1, 2] - res3[1, 3]), 4)`, przy czym wartość przewidywana przez model była wyższa.
@@ -492,8 +493,7 @@ res1 = subset(tab1, CZY_KIER == 'Tak') |> group_by(PYT_2) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, CZY_KIER == 'Tak')$count), 
             p_model = sum(fitted2) / sum(subset(tab1, CZY_KIER == 'Tak')$fitted2),
             .groups = 'drop')
-res1
-
+res1 |> kable()
 ```
 
 Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba pracująca na stanowisku kierowniczym jest zdecydowanie zadowolona ze szkoleń, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **PYT_2** = 2. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res1[4, 2] - res1[4, 3]), 4)`, przy czym liczność uzyskana z tabeli była wyższa.
@@ -511,7 +511,7 @@ subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
 res2 = subset(tab1, STAŻ == 1) |> group_by(CZY_KIER) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 1)$count),
             p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 1)$fitted2), .groups = 'drop')
-res2
+res2 |> kable()
 ```
 
 Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy krótszym niż rok pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na ostatni wiersz tabeli, gdzie **CZY_KIER** = Tak. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res2[2, 2] - res2[2, 3]), 4)`, przy czym wartość przewidywana przez model była wyższa.
@@ -529,7 +529,7 @@ subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
 res3 = subset(tab1, STAŻ == 3) |> group_by(CZY_KIER) %>%
   summarise(p_dane = sum(count) / sum(subset(tab1, STAŻ == 3)$count),
             p_model = sum(fitted2) / sum(subset(tab1, STAŻ == 3)$fitted2), .groups = 'drop')
-res3
+res3 |> kable()
 ```
 
 Jako, że interesuje nas oszacowanie prawdopodobieństwa, że osoba o stażu pracy dłuższym niż trzy lata nie pracuje na stanowisku kierowniczym, wystarczy że spojrzymy na pierwszy wiersz tabeli, gdzie **CZY_KIER** = Nie. Liczność wyliczona z tabeli oraz wartość przewidywana przez model różnią się o około `r round(abs(res3[1, 2] - res3[1, 3]), 4)`, przy czym wartość przewidywana przez model była wyższa.
